@@ -1,153 +1,146 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:munit="http://www.mulesoft.org/schema/mule/munit"
-      xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
-      xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
-      xmlns="http://www.mulesoft.org/schema/mule/core"
-      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-      xsi:schemaLocation="
+<mule
+    xmlns="http://www.mulesoft.org/schema/mule/core"
+    xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:munit="http://www.mulesoft.org/schema/mule/munit"
+    xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+    xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+    xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp"
+    xsi:schemaLocation="
 http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd 
         http://www.mulesoft.org/schema/mule/core
         http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+
         http://www.mulesoft.org/schema/mule/munit
         http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+
         http://www.mulesoft.org/schema/mule/munit-tools
         http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd
+
         http://www.mulesoft.org/schema/mule/salesforce
-        http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+        http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+
+        http://www.mulesoft.org/schema/mule/amqp
+        http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd">
 
     <munit:config name="munit"/>
 
-    <!-- ========================================================= -->
-    <!-- 1. Contact, Account, Reports To, and Contact Count         -->
-    <!-- ========================================================= -->
-
     <munit:test
-            name="testContactEnrichment"
-            description="Validate Account, Reports To, and Account Contact Count enrichment">
+        name="testContactEnrichment"
+        description="Validate Account, Reports To, and Account Contact Count enrichment">
 
         <munit:behavior>
 
-            <munit-tools:mock-when
-                    processor="salesforce:query"
-                    doc:name="Mock Salesforce Contact Query">
+            <munit-tools:mock-when processor="salesforce:query">
 
                 <munit-tools:with-attributes>
                     <munit-tools:with-attribute
-                            attributeName="doc:name"
-                            whereValue='#["Retrieve Salesforce Contact Details"]'/>
+                        attributeName="doc:name"
+                        whereValue="#['Retrieve Salesforce Contact Details']"/>
                 </munit-tools:with-attributes>
 
                 <munit-tools:then-return>
                     <munit-tools:payload
-                            mediaType="application/java"
-                            value='#[[
-                                {
-                                    Id: "003TEST",
-                                    FirstName: "Arjun",
-                                    LastName: "Metha",
-                                    Email: "ARJUN.METHA@TEST.COM",
-                                    Phone: "9876543210",
-                                    AccountId: "001TEST",
-                                    Title: "Engineering Manager",
-                                    Department: "Engineering",
-                                    ReportsToId: "003MGR",
-                                    LastModifiedDate:
-                                        "2026-10-08T20:23:12.000Z"
-                                }
-                            ]]'/>
+                        mediaType="application/java"
+                        value='#[[
+                            {
+                                Id: "003TEST",
+                                FirstName: "Arjun",
+                                LastName: "Metha",
+                                Email: "ARJUN.METHA@TEST.COM",
+                                Phone: "9876543210",
+                                AccountId: "001TEST",
+                                Title: "Engineering Manager",
+                                Department: "Engineering",
+                                ReportsToId: "003MGR",
+                                LastModifiedDate:
+                                    "2026-10-08T20:23:12.000Z"
+                            }
+                        ]]'/>
                 </munit-tools:then-return>
 
             </munit-tools:mock-when>
 
-            <munit-tools:mock-when
-                    processor="salesforce:query"
-                    doc:name="Mock Salesforce Account Query">
+            <munit-tools:mock-when processor="salesforce:query">
 
                 <munit-tools:with-attributes>
                     <munit-tools:with-attribute
-                            attributeName="doc:name"
-                            whereValue='#["Retrieve Related Account Details"]'/>
+                        attributeName="doc:name"
+                        whereValue="#['Retrieve Related Account Details']"/>
                 </munit-tools:with-attributes>
 
                 <munit-tools:then-return>
                     <munit-tools:payload
-                            mediaType="application/java"
-                            value='#[[
-                                {
-                                    Id: "001TEST",
-                                    Name: "Microsoft",
-                                    Industry: "Technology",
-                                    Type: "Customer - Direct",
-                                    AnnualRevenue: 15000000
-                                }
-                            ]]'/>
+                        mediaType="application/java"
+                        value='#[[
+                            {
+                                Id: "001TEST",
+                                Name: "Microsoft",
+                                Industry: "Technology",
+                                Type: "Customer - Direct",
+                                AnnualRevenue: 15000000
+                            }
+                        ]]'/>
                 </munit-tools:then-return>
 
             </munit-tools:mock-when>
 
-            <munit-tools:mock-when
-                    processor="salesforce:query"
-                    doc:name="Mock Reports To Contact Query">
+            <munit-tools:mock-when processor="salesforce:query">
 
                 <munit-tools:with-attributes>
                     <munit-tools:with-attribute
-                            attributeName="doc:name"
-                            whereValue='#["Retrieve Reports To Contact Details"]'/>
+                        attributeName="doc:name"
+                        whereValue="#['Retrieve Reports To Contact Details']"/>
                 </munit-tools:with-attributes>
 
                 <munit-tools:then-return>
                     <munit-tools:payload
-                            mediaType="application/java"
-                            value='#[[
-                                {
-                                    Id: "003MGR",
-                                    Name: "John Manager"
-                                }
-                            ]]'/>
+                        mediaType="application/java"
+                        value='#[[
+                            {
+                                Id: "003MGR",
+                                Name: "John Manager"
+                            }
+                        ]]'/>
                 </munit-tools:then-return>
 
             </munit-tools:mock-when>
 
-            <munit-tools:mock-when
-                    processor="salesforce:query"
-                    doc:name="Mock Account Contact Count Query">
+            <munit-tools:mock-when processor="salesforce:query">
 
                 <munit-tools:with-attributes>
                     <munit-tools:with-attribute
-                            attributeName="doc:name"
-                            whereValue='#["Retrieve Related Account Contact Count"]'/>
+                        attributeName="doc:name"
+                        whereValue="#['Retrieve Related Account Contact Count']"/>
                 </munit-tools:with-attributes>
 
                 <munit-tools:then-return>
                     <munit-tools:payload
-                            mediaType="application/java"
-                            value='#[[
-                                {Id: "003CONTACT1"},
-                                {Id: "003CONTACT2"},
-                                {Id: "003CONTACT3"},
-                                {Id: "003CONTACT4"}
-                            ]]'/>
+                        mediaType="application/java"
+                        value='#[[
+                            {Id: "003CONTACT1"},
+                            {Id: "003CONTACT2"},
+                            {Id: "003CONTACT3"},
+                            {Id: "003CONTACT4"}
+                        ]]'/>
                 </munit-tools:then-return>
 
             </munit-tools:mock-when>
 
-            <!-- Stops publication to the real ActiveMQ destination -->
-            <munit-tools:mock-when
-                    processor="flow-ref"
-                    doc:name="Mock JMS Publisher Subflow">
+            <munit-tools:mock-when processor="flow-ref">
 
                 <munit-tools:with-attributes>
                     <munit-tools:with-attribute
-                            attributeName="doc:name"
-                            whereValue='#["Publish Contact Onboarding JMS Message"]'/>
+                        attributeName="name"
+                        whereValue="#['contact-jms-message-publisher-subflow']"/>
                 </munit-tools:with-attributes>
 
                 <munit-tools:then-return>
                     <munit-tools:payload
-                            mediaType="application/json"
-                            value="#[payload]"/>
+                        value="#[payload]"
+                        mediaType="application/java"/>
                 </munit-tools:then-return>
 
             </munit-tools:mock-when>
@@ -159,137 +152,125 @@ http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/mu
             <munit:set-event doc:name="Set Contact CDC Event">
 
                 <munit:payload
-                        mediaType="application/java"
-                        value='#[{
-                            data: {
-                                schema: "TEST_SCHEMA",
-                                payload: {
-                                    ChangeEventHeader: {
-                                        entityName: "Contact",
-                                        changeType: "UPDATE",
-                                        recordIds: ["003TEST"]
-                                    }
-                                },
-                                event: {
-                                    replayId: 2126833
+                    mediaType="application/java"
+                    value='#[{
+                        data: {
+                            schema: "TEST_SCHEMA",
+                            payload: {
+                                ChangeEventHeader: {
+                                    entityName: "Contact",
+                                    changeType: "UPDATE",
+                                    recordIds: ["003TEST"]
                                 }
                             },
-                            channel: "/data/ContactChangeEvent"
-                        }]'/>
+                            event: {
+                                replayId: 2126833
+                            }
+                        },
+                        channel: "/data/ContactChangeEvent"
+                    }]'/>
 
             </munit:set-event>
 
             <flow-ref
-                    name="contact-cdc-listenerFlow"
-                    doc:name="Execute Contact CDC Listener Flow"/>
+                name="contact-cdc-listenerFlow"
+                doc:name="Execute Contact CDC Listener Flow"/>
 
         </munit:execution>
 
         <munit:validation>
 
             <munit-tools:assert-that
-                    expression="#[vars.contactDetails.Id]"
-                    is='#[MunitTools::equalTo("003TEST")]'
-                    message="Contact ID was not populated correctly."
-                    doc:name="Assert Contact Identifier"/>
+                expression="#[vars.contactDetails.Id]"
+                is="#[MunitTools::equalTo('003TEST')]"
+                message="Contact ID was not populated correctly."/>
 
             <munit-tools:assert-that
-                    expression="#[vars.accountDetails.Name]"
-                    is='#[MunitTools::equalTo("Microsoft")]'
-                    message="Account Name was not enriched correctly."
-                    doc:name="Assert Account Name"/>
+                expression="#[vars.accountDetails.Name]"
+                is="#[MunitTools::equalTo('Microsoft')]"
+                message="Account Name was not enriched correctly."/>
 
             <munit-tools:assert-that
-                    expression="#[vars.accountDetails.Industry]"
-                    is='#[MunitTools::equalTo("Technology")]'
-                    message="Account Industry was not enriched correctly."
-                    doc:name="Assert Account Industry"/>
+                expression="#[vars.accountDetails.Industry]"
+                is="#[MunitTools::equalTo('Technology')]"
+                message="Account Industry was not enriched correctly."/>
 
             <munit-tools:assert-that
-                    expression="#[vars.accountDetails.Type]"
-                    is='#[MunitTools::equalTo("Customer - Direct")]'
-                    message="Account Type was not enriched correctly."
-                    doc:name="Assert Account Type"/>
+                expression="#[vars.accountDetails.Type]"
+                is="#[MunitTools::equalTo('Customer - Direct')]"
+                message="Account Type was not enriched correctly."/>
 
             <munit-tools:assert-that
-                    expression="#[vars.accountDetails.AnnualRevenue]"
-                    is="#[MunitTools::equalTo(15000000)]"
-                    message="Account Annual Revenue was not enriched correctly."
-                    doc:name="Assert Account Annual Revenue"/>
+                expression="#[vars.accountDetails.AnnualRevenue]"
+                is="#[MunitTools::equalTo(15000000)]"
+                message="Account Annual Revenue was not enriched correctly."/>
 
             <munit-tools:assert-that
-                    expression="#[vars.managerDetails.Name]"
-                    is='#[MunitTools::equalTo("John Manager")]'
-                    message="Reports To name was not enriched correctly."
-                    doc:name="Assert Reports To Name"/>
+                expression="#[vars.managerDetails.Name]"
+                is="#[MunitTools::equalTo('John Manager')]"
+                message="Reports To name was not enriched correctly."/>
 
             <munit-tools:assert-that
-                    expression="#[vars.accountContactCount]"
-                    is="#[MunitTools::equalTo(4)]"
-                    message="Account Contact Count was not populated correctly."
-                    doc:name="Assert Account Contact Count"/>
+                expression="#[vars.accountContactCount]"
+                is="#[MunitTools::equalTo(4)]"
+                message="Account Contact Count was not populated correctly."/>
 
             <munit-tools:verify-call
-                    processor="salesforce:query"
-                    times="1"
-                    doc:name="Verify Contact Query">
+                processor="salesforce:query"
+                times="1">
 
                 <munit-tools:with-attributes>
                     <munit-tools:with-attribute
-                            attributeName="doc:name"
-                            whereValue='#["Retrieve Salesforce Contact Details"]'/>
+                        attributeName="doc:name"
+                        whereValue="#['Retrieve Salesforce Contact Details']"/>
                 </munit-tools:with-attributes>
 
             </munit-tools:verify-call>
 
             <munit-tools:verify-call
-                    processor="salesforce:query"
-                    times="1"
-                    doc:name="Verify Account Query">
+                processor="salesforce:query"
+                times="1">
 
                 <munit-tools:with-attributes>
                     <munit-tools:with-attribute
-                            attributeName="doc:name"
-                            whereValue='#["Retrieve Related Account Details"]'/>
+                        attributeName="doc:name"
+                        whereValue="#['Retrieve Related Account Details']"/>
                 </munit-tools:with-attributes>
 
             </munit-tools:verify-call>
 
             <munit-tools:verify-call
-                    processor="salesforce:query"
-                    times="1"
-                    doc:name="Verify Reports To Query">
+                processor="salesforce:query"
+                times="1">
 
                 <munit-tools:with-attributes>
                     <munit-tools:with-attribute
-                            attributeName="doc:name"
-                            whereValue='#["Retrieve Reports To Contact Details"]'/>
+                        attributeName="doc:name"
+                        whereValue="#['Retrieve Reports To Contact Details']"/>
                 </munit-tools:with-attributes>
 
             </munit-tools:verify-call>
 
             <munit-tools:verify-call
-                    processor="salesforce:query"
-                    times="1"
-                    doc:name="Verify Account Contact Count Query">
+                processor="salesforce:query"
+                times="1">
 
                 <munit-tools:with-attributes>
                     <munit-tools:with-attribute
-                            attributeName="doc:name"
-                            whereValue='#["Retrieve Related Account Contact Count"]'/>
+                        attributeName="doc:name"
+                        whereValue="#['Retrieve Related Account Contact Count']"/>
                 </munit-tools:with-attributes>
 
             </munit-tools:verify-call>
 
             <munit-tools:verify-call
-                    processor="flow-ref"
-                    times="1"
-                    doc:name="Verify JMS Publisher Invocation">
+                processor="flow-ref"
+                times="1">
 
                 <munit-tools:with-attributes>
                     <munit-tools:with-attribute
-                            attributeName="doc:name"
-                            whereValue='#["Publish Contact Onboarding JMS Message"]'/>
+                        attributeName="name"
+                        whereValue="#['contact-jms-message-publisher-subflow']"/>
                 </munit-tools:with-attributes>
 
             </munit-tools:verify-call>
@@ -298,284 +279,216 @@ http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/mu
 
     </munit:test>
 
-    <!-- ========================================================= -->
-    <!-- 2. HIGH Priority                                         -->
-    <!-- ========================================================= -->
-
     <munit:test
-            name="testHighPriorityContact"
-            description="Validate HIGH priority when Account Annual Revenue is greater than 10000000">
+        name="testHighPriorityContact"
+        description="Validate HIGH priority for revenue greater than 10000000">
 
         <munit:execution>
 
-            <munit:set-event doc:name="Set High Revenue Account Details">
+            <munit:set-event doc:name="Set High Revenue Account">
 
                 <munit:payload
-                        value="#[null]"
-                        mediaType="application/java"/>
-
-                <munit:variables>
-
-                    <munit:variable
-                            key="contactId"
-                            value='#["003HIGH"]'
-                            mediaType="application/java"/>
-
-                    <munit:variable
-                            key="replayId"
-                            value="#[101]"
-                            mediaType="application/java"/>
-
-                    <munit:variable
-                            key="changeType"
-                            value='#["UPDATE"]'
-                            mediaType="application/java"/>
-
-                    <munit:variable
-                            key="accountDetails"
-                            mediaType="application/java"
-                            value='#[{
-                                Name: "High Revenue Account",
-                                Industry: "Technology",
-                                Type: "Prospect",
-                                AnnualRevenue: 15000000
-                            }]'/>
-
-                </munit:variables>
-
-            </munit:set-event>
-
-            <flow-ref
-                    name="contact-priority-calculation-subflow"
-                    doc:name="Execute High Priority Calculation"/>
-
-        </munit:execution>
-
-        <munit:validation>
-
-            <munit-tools:assert-that
-                    expression="#[vars.contactPriority]"
-                    is='#[MunitTools::equalTo("HIGH")]'
-                    message="Priority must be HIGH when revenue exceeds 10000000."
-                    doc:name="Assert High Contact Priority"/>
-
-            <munit-tools:assert-that
-                    expression="#[vars.accountDetails.AnnualRevenue &gt; 10000000]"
-                    is="#[MunitTools::equalTo(true)]"
-                    message="Test data does not exceed the HIGH revenue threshold."
-                    doc:name="Assert High Revenue Condition"/>
-
-        </munit:validation>
-
-    </munit:test>
-
-    <!-- ========================================================= -->
-    <!-- 3. MEDIUM Customer Priority                               -->
-    <!-- ========================================================= -->
-
-    <munit:test
-            name="testCustomerPriority"
-            description="Validate MEDIUM priority when Account Type is Customer and revenue does not meet HIGH criteria">
-
-        <munit:execution>
-
-            <munit:set-event doc:name="Set Customer Account Details">
-
-                <munit:payload
-                        value="#[null]"
-                        mediaType="application/java"/>
-
-                <munit:variables>
-
-                    <munit:variable
-                            key="contactId"
-                            value='#["003MEDIUM"]'
-                            mediaType="application/java"/>
-
-                    <munit:variable
-                            key="replayId"
-                            value="#[102]"
-                            mediaType="application/java"/>
-
-                    <munit:variable
-                            key="changeType"
-                            value='#["UPDATE"]'
-                            mediaType="application/java"/>
-
-                    <munit:variable
-                            key="accountDetails"
-                            mediaType="application/java"
-                            value='#[{
-                                Name: "Customer Account",
-                                Industry: "Consulting",
-                                Type: "Customer",
-                                AnnualRevenue: 8000000
-                            }]'/>
-
-                </munit:variables>
-
-            </munit:set-event>
-
-            <flow-ref
-                    name="contact-priority-calculation-subflow"
-                    doc:name="Execute Customer Priority Calculation"/>
-
-        </munit:execution>
-
-        <munit:validation>
-
-            <munit-tools:assert-that
-                    expression="#[vars.contactPriority]"
-                    is='#[MunitTools::equalTo("MEDIUM")]'
-                    message="Priority must be MEDIUM for a Customer below the HIGH revenue threshold."
-                    doc:name="Assert Medium Contact Priority"/>
-
-            <munit-tools:assert-that
-                    expression="#[vars.accountDetails.AnnualRevenue &lt;= 10000000]"
-                    is="#[MunitTools::equalTo(true)]"
-                    message="Test data incorrectly meets the HIGH revenue condition."
-                    doc:name="Assert Revenue Below High Threshold"/>
-
-            <munit-tools:assert-that
-                    expression='#[lower(vars.accountDetails.Type default "") contains "customer"]'
-                    is="#[MunitTools::equalTo(true)]"
-                    message="Test Account Type is not Customer."
-                    doc:name="Assert Customer Account Type"/>
-
-        </munit:validation>
-
-    </munit:test>
-
-    <!-- ========================================================= -->
-    <!-- 4. NORMAL Default Priority                                -->
-    <!-- ========================================================= -->
-
-    <munit:test
-            name="testDefaultPriority"
-            description="Validate NORMAL priority for all other Contacts">
-
-        <munit:execution>
-
-            <munit:set-event doc:name="Set Default Priority Account Details">
-
-                <munit:payload
-                        value="#[null]"
-                        mediaType="application/java"/>
-
-                <munit:variables>
-
-                    <munit:variable
-                            key="contactId"
-                            value='#["003NORMAL"]'
-                            mediaType="application/java"/>
-
-                    <munit:variable
-                            key="replayId"
-                            value="#[103]"
-                            mediaType="application/java"/>
-
-                    <munit:variable
-                            key="changeType"
-                            value='#["UPDATE"]'
-                            mediaType="application/java"/>
-
-                    <munit:variable
-                            key="accountDetails"
-                            mediaType="application/java"
-                            value='#[{
-                                Name: "Prospect Account",
-                                Industry: "Education",
-                                Type: "Prospect",
-                                AnnualRevenue: 5000000
-                            }]'/>
-
-                </munit:variables>
-
-            </munit:set-event>
-
-            <flow-ref
-                    name="contact-priority-calculation-subflow"
-                    doc:name="Execute Default Priority Calculation"/>
-
-        </munit:execution>
-
-        <munit:validation>
-
-            <munit-tools:assert-that
-                    expression="#[vars.contactPriority]"
-                    is='#[MunitTools::equalTo("NORMAL")]'
-                    message="Priority must be NORMAL when HIGH and MEDIUM conditions are not met."
-                    doc:name="Assert Normal Contact Priority"/>
-
-            <munit-tools:assert-that
-                    expression="#[vars.accountDetails.AnnualRevenue &lt;= 10000000]"
-                    is="#[MunitTools::equalTo(true)]"
-                    message="Test data incorrectly meets the HIGH revenue condition."
-                    doc:name="Assert Revenue Below High Threshold"/>
-
-            <munit-tools:assert-that
-                    expression='#[!(lower(vars.accountDetails.Type default "") contains "customer")]'
-                    is="#[MunitTools::equalTo(true)]"
-                    message="Test Account Type incorrectly meets the Customer condition."
-                    doc:name="Assert Non Customer Account Type"/>
-
-        </munit:validation>
-
-    </munit:test>
-
-    <!-- ========================================================= -->
-    <!-- 5. JMS Transformation Output                              -->
-    <!-- ========================================================= -->
-
-    <!-- ========================================================= -->
-<!-- 5. JMS Transformation Output                              -->
-<!-- ========================================================= -->
-
-<munit:test
-        name="testTransformationOutput"
-        description="Validate mappings, lowercase email, date formatting, defaults, enrichment, and derived fields">
-
-    <munit:execution>
-
-        <munit:set-event doc:name="Set Enriched Contact Variables">
-
-            <munit:payload
                     value="#[null]"
                     mediaType="application/java"/>
 
-            <munit:variables>
+                <munit:variables>
 
-                <munit:variable
-                        key="correlationId"
-                        value='#["TEST-CORRELATION-001"]'
-                        mediaType="application/java"/>
-
-                <munit:variable
+                    <munit:variable
                         key="contactId"
-                        value='#["003TRANSFORM"]'
-                        mediaType="application/java"/>
+                        value="#['003HIGH']"/>
 
-                <munit:variable
-                        key="accountId"
-                        value='#["001TRANSFORM"]'
-                        mediaType="application/java"/>
-
-                <munit:variable
-                        key="reportsToId"
-                        value='#["003MANAGER"]'
-                        mediaType="application/java"/>
-
-                <munit:variable
+                    <munit:variable
                         key="replayId"
-                        value="#[2126833]"
-                        mediaType="application/java"/>
+                        value="#[101]"/>
 
-                <munit:variable
+                    <munit:variable
                         key="changeType"
-                        value='#["UPDATE"]'
-                        mediaType="application/java"/>
+                        value="#['UPDATE']"/>
 
-                <munit:variable
+                    <munit:variable
+                        key="accountDetails"
+                        mediaType="application/java"
+                        value='#[{
+                            Name: "High Revenue Account",
+                            Industry: "Technology",
+                            Type: "Prospect",
+                            AnnualRevenue: 15000000
+                        }]'/>
+
+                </munit:variables>
+
+            </munit:set-event>
+
+            <flow-ref
+                name="contact-priority-calculation-subflow"
+                doc:name="Execute High Priority Calculation"/>
+
+        </munit:execution>
+
+        <munit:validation>
+
+            <munit-tools:assert-that
+                expression="#[vars.contactPriority]"
+                is="#[MunitTools::equalTo('HIGH')]"
+                message="Priority must be HIGH."/>
+
+        </munit:validation>
+
+    </munit:test>
+
+    <munit:test
+        name="testCustomerPriority"
+        description="Validate MEDIUM priority for Customer below HIGH threshold">
+
+        <munit:execution>
+
+            <munit:set-event doc:name="Set Customer Account">
+
+                <munit:payload
+                    value="#[null]"
+                    mediaType="application/java"/>
+
+                <munit:variables>
+
+                    <munit:variable
+                        key="contactId"
+                        value="#['003MEDIUM']"/>
+
+                    <munit:variable
+                        key="replayId"
+                        value="#[102]"/>
+
+                    <munit:variable
+                        key="changeType"
+                        value="#['UPDATE']"/>
+
+                    <munit:variable
+                        key="accountDetails"
+                        mediaType="application/java"
+                        value='#[{
+                            Name: "Customer Account",
+                            Industry: "Consulting",
+                            Type: "Customer",
+                            AnnualRevenue: 8000000
+                        }]'/>
+
+                </munit:variables>
+
+            </munit:set-event>
+
+            <flow-ref
+                name="contact-priority-calculation-subflow"
+                doc:name="Execute Customer Priority Calculation"/>
+
+        </munit:execution>
+
+        <munit:validation>
+
+            <munit-tools:assert-that
+                expression="#[vars.contactPriority]"
+                is="#[MunitTools::equalTo('MEDIUM')]"
+                message="Priority must be MEDIUM."/>
+
+        </munit:validation>
+
+    </munit:test>
+
+    <munit:test
+        name="testDefaultPriority"
+        description="Validate NORMAL priority for all other Contacts">
+
+        <munit:execution>
+
+            <munit:set-event doc:name="Set Prospect Account">
+
+                <munit:payload
+                    value="#[null]"
+                    mediaType="application/java"/>
+
+                <munit:variables>
+
+                    <munit:variable
+                        key="contactId"
+                        value="#['003NORMAL']"/>
+
+                    <munit:variable
+                        key="replayId"
+                        value="#[103]"/>
+
+                    <munit:variable
+                        key="changeType"
+                        value="#['UPDATE']"/>
+
+                    <munit:variable
+                        key="accountDetails"
+                        mediaType="application/java"
+                        value='#[{
+                            Name: "Prospect Account",
+                            Industry: "Education",
+                            Type: "Prospect",
+                            AnnualRevenue: 5000000
+                        }]'/>
+
+                </munit:variables>
+
+            </munit:set-event>
+
+            <flow-ref
+                name="contact-priority-calculation-subflow"
+                doc:name="Execute Default Priority Calculation"/>
+
+        </munit:execution>
+
+        <munit:validation>
+
+            <munit-tools:assert-that
+                expression="#[vars.contactPriority]"
+                is="#[MunitTools::equalTo('NORMAL')]"
+                message="Priority must be NORMAL."/>
+
+        </munit:validation>
+
+    </munit:test>
+
+    <munit:test
+        name="testTransformationOutput"
+        description="Validate Contact onboarding payload transformation">
+
+        <munit:execution>
+
+            <munit:set-event doc:name="Set Enriched Contact Variables">
+
+                <munit:payload
+                    value="#[null]"
+                    mediaType="application/java"/>
+
+                <munit:variables>
+
+                    <munit:variable
+                        key="correlationId"
+                        value="#['TEST-CORRELATION-001']"/>
+
+                    <munit:variable
+                        key="contactId"
+                        value="#['003TRANSFORM']"/>
+
+                    <munit:variable
+                        key="accountId"
+                        value="#['001TRANSFORM']"/>
+
+                    <munit:variable
+                        key="reportsToId"
+                        value="#['003MANAGER']"/>
+
+                    <munit:variable
+                        key="replayId"
+                        value="#[2126833]"/>
+
+                    <munit:variable
+                        key="changeType"
+                        value="#['UPDATE']"/>
+
+                    <munit:variable
                         key="contactDetails"
                         mediaType="application/java"
                         value='#[{
@@ -592,7 +505,7 @@ http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/mu
                                 "2026-10-08T20:23:12.000Z"
                         }]'/>
 
-                <munit:variable
+                    <munit:variable
                         key="accountDetails"
                         mediaType="application/java"
                         value='#[{
@@ -603,7 +516,7 @@ http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/mu
                             AnnualRevenue: 15000000
                         }]'/>
 
-                <munit:variable
+                    <munit:variable
                         key="managerDetails"
                         mediaType="application/java"
                         value='#[{
@@ -611,170 +524,98 @@ http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/mu
                             Name: "John Manager"
                         }]'/>
 
-                <munit:variable
+                    <munit:variable
                         key="accountContactCount"
-                        value="#[4]"
-                        mediaType="application/java"/>
+                        value="#[4]"/>
 
-                <munit:variable
+                    <munit:variable
                         key="contactPriority"
-                        value='#["HIGH"]'
-                        mediaType="application/java"/>
+                        value="#['HIGH']"/>
 
-            </munit:variables>
+                </munit:variables>
 
-        </munit:set-event>
+            </munit:set-event>
 
-        <flow-ref
+            <flow-ref
                 name="contact-jms-payload-builder-subflow"
-                doc:name="Execute JMS Payload Transformation"/>
+                doc:name="Execute Onboarding Payload Transformation"/>
 
-    </munit:execution>
+        </munit:execution>
 
-    <munit:validation>
+        <munit:validation>
 
-        <!-- Verify the transformation produced the JMS payload variable -->
-        <munit-tools:assert-that
+            <munit-tools:assert-that
                 expression="#[vars.jmsPayload]"
                 is="#[MunitTools::notNullValue()]"
-                message="JMS payload was not created."
-                doc:name="Assert JMS Payload Created"/>
+                message="Onboarding payload was not created."/>
 
-        <!-- Direct Contact field mappings -->
-        <munit-tools:assert-that
+            <munit-tools:assert-that
                 expression="#[vars.jmsPayload.contact_sf_id]"
-                is='#[MunitTools::equalTo("003TRANSFORM")]'
-                message="Contact ID mapping is incorrect."
-                doc:name="Assert Contact ID Mapping"/>
+                is="#[MunitTools::equalTo('003TRANSFORM')]"
+                message="Contact ID mapping is incorrect."/>
 
-        <munit-tools:assert-that
+            <munit-tools:assert-that
                 expression="#[vars.jmsPayload.first_name]"
-                is='#[MunitTools::equalTo("Priya")]'
-                message="First Name mapping is incorrect."
-                doc:name="Assert First Name Mapping"/>
+                is="#[MunitTools::equalTo('Priya')]"
+                message="First Name mapping is incorrect."/>
 
-        <munit-tools:assert-that
+            <munit-tools:assert-that
                 expression="#[vars.jmsPayload.last_name]"
-                is='#[MunitTools::equalTo("Adhikari")]'
-                message="Last Name mapping is incorrect."
-                doc:name="Assert Last Name Mapping"/>
+                is="#[MunitTools::equalTo('Adhikari')]"
+                message="Last Name mapping is incorrect."/>
 
-        <!-- Business rule: email must be lowercase -->
-        <munit-tools:assert-that
+            <munit-tools:assert-that
                 expression="#[vars.jmsPayload.email]"
-                is='#[MunitTools::equalTo("priya.adhikari@test.com")]'
-                message="Email was not converted to lowercase."
-                doc:name="Assert Lowercase Email"/>
+                is="#[MunitTools::equalTo('priya.adhikari@test.com')]"
+                message="Email was not converted to lowercase."/>
 
-        <munit-tools:assert-that
-                expression="#[vars.jmsPayload.phone]"
-                is='#[MunitTools::equalTo("9876543210")]'
-                message="Phone mapping is incorrect."
-                doc:name="Assert Phone Mapping"/>
-
-        <munit-tools:assert-that
-                expression="#[vars.jmsPayload.account_id]"
-                is='#[MunitTools::equalTo("001TRANSFORM")]'
-                message="Account ID mapping is incorrect."
-                doc:name="Assert Account ID Mapping"/>
-
-        <munit-tools:assert-that
-                expression="#[vars.jmsPayload.job_title]"
-                is='#[MunitTools::equalTo("Technical Trainee")]'
-                message="Job Title mapping is incorrect."
-                doc:name="Assert Job Title Mapping"/>
-
-        <munit-tools:assert-that
-                expression="#[vars.jmsPayload.department]"
-                is='#[MunitTools::equalTo("Technology")]'
-                message="Department mapping is incorrect."
-                doc:name="Assert Department Mapping"/>
-
-        <!-- Reports To enrichment -->
-        <munit-tools:assert-that
-                expression="#[vars.jmsPayload.reports_to_id]"
-                is='#[MunitTools::equalTo("003MANAGER")]'
-                message="Reports To ID mapping is incorrect."
-                doc:name="Assert Reports To ID Mapping"/>
-
-        <munit-tools:assert-that
-                expression="#[vars.jmsPayload.reports_to_name]"
-                is='#[MunitTools::equalTo("John Manager")]'
-                message="Reports To Name enrichment is incorrect."
-                doc:name="Assert Reports To Name"/>
-
-        <!-- Account enrichment -->
-        <munit-tools:assert-that
+            <munit-tools:assert-that
                 expression="#[vars.jmsPayload.account_name]"
-                is='#[MunitTools::equalTo("Microsoft")]'
-                message="Account Name enrichment is incorrect."
-                doc:name="Assert Account Name"/>
+                is="#[MunitTools::equalTo('Microsoft')]"
+                message="Account Name enrichment is incorrect."/>
 
-        <munit-tools:assert-that
-                expression="#[vars.jmsPayload.account_industry]"
-                is='#[MunitTools::equalTo("Technology")]'
-                message="Account Industry enrichment is incorrect."
-                doc:name="Assert Account Industry"/>
+            <munit-tools:assert-that
+                expression="#[vars.jmsPayload.reports_to_name]"
+                is="#[MunitTools::equalTo('John Manager')]"
+                message="Reports To Name enrichment is incorrect."/>
 
-        <munit-tools:assert-that
-                expression="#[vars.jmsPayload.account_type]"
-                is='#[MunitTools::equalTo("Customer - Direct")]'
-                message="Account Type enrichment is incorrect."
-                doc:name="Assert Account Type"/>
-
-        <munit-tools:assert-that
-                expression="#[vars.jmsPayload.account_revenue]"
-                is="#[MunitTools::equalTo(15000000)]"
-                message="Account Revenue enrichment is incorrect."
-                doc:name="Assert Account Revenue"/>
-
-        <!-- Related Contact count enrichment -->
-        <munit-tools:assert-that
+            <munit-tools:assert-that
                 expression="#[vars.jmsPayload.account_contact_count]"
                 is="#[MunitTools::equalTo(4)]"
-                message="Account Contact Count enrichment is incorrect."
-                doc:name="Assert Account Contact Count"/>
+                message="Account Contact Count is incorrect."/>
 
-        <!-- Derived priority -->
-        <munit-tools:assert-that
+            <munit-tools:assert-that
                 expression="#[vars.jmsPayload.contact_priority]"
-                is='#[MunitTools::equalTo("HIGH")]'
-                message="Derived Contact Priority is incorrect."
-                doc:name="Assert Contact Priority"/>
+                is="#[MunitTools::equalTo('HIGH')]"
+                message="Contact Priority is incorrect."/>
 
-        <!-- Required yyyy-MM-dd HH:mm:ss date format -->
-        <munit-tools:assert-that
+            <munit-tools:assert-that
                 expression="#[vars.jmsPayload.modified_date]"
-                is='#[MunitTools::equalTo("2026-10-08 20:23:12")]'
-                message="Modified Date formatting is incorrect."
-                doc:name="Assert Modified Date Format"/>
+                is="#[MunitTools::equalTo('2026-10-08 20:23:12')]"
+                message="Modified Date formatting is incorrect."/>
 
-    </munit:validation>
+        </munit:validation>
 
-</munit:test>
-    <!-- ========================================================= -->
-    <!-- 6. Salesforce Query Failure                               -->
-    <!-- ========================================================= -->
+    </munit:test>
 
     <munit:test
-            name="testSalesforceQueryFailure"
-            description="Validate Salesforce enrichment query error handling"
-            expectedErrorType="MULE:RETRY_EXHAUSTED">
+        name="testSalesforceQueryFailure"
+        description="Validate Salesforce enrichment query error handling"
+        expectedErrorType="MULE:RETRY_EXHAUSTED">
 
         <munit:behavior>
 
-            <munit-tools:mock-when
-                    processor="salesforce:query"
-                    doc:name="Mock Salesforce Contact Query Failure">
+            <munit-tools:mock-when processor="salesforce:query">
 
                 <munit-tools:with-attributes>
                     <munit-tools:with-attribute
-                            attributeName="doc:name"
-                            whereValue='#["Retrieve Salesforce Contact Details"]'/>
+                        attributeName="doc:name"
+                        whereValue="#['Retrieve Salesforce Contact Details']"/>
                 </munit-tools:with-attributes>
 
                 <munit-tools:then-return>
-                    <munit-tools:error typeId="SALESFORCE:CONNECTIVITY"/>
+                    <munit-tools:error
+                        typeId="SALESFORCE:CONNECTIVITY"/>
                 </munit-tools:then-return>
 
             </munit-tools:mock-when>
@@ -783,189 +624,150 @@ http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/mu
 
         <munit:execution>
 
-            <munit:set-event doc:name="Set Salesforce Query Failure Context">
+            <munit:set-event doc:name="Set Query Failure Context">
 
                 <munit:payload
-                        value="#[null]"
-                        mediaType="application/java"/>
+                    value="#[null]"
+                    mediaType="application/java"/>
 
                 <munit:variables>
 
                     <munit:variable
-                            key="correlationId"
-                            value='#["TEST-CORRELATION-FAILURE"]'
-                            mediaType="application/java"/>
+                        key="correlationId"
+                        value="#['TEST-CORRELATION-FAILURE']"/>
 
                     <munit:variable
-                            key="contactId"
-                            value='#["003QUERYFAIL"]'
-                            mediaType="application/java"/>
+                        key="contactId"
+                        value="#['003QUERYFAIL']"/>
 
                     <munit:variable
-                            key="replayId"
-                            value="#[2126899]"
-                            mediaType="application/java"/>
+                        key="replayId"
+                        value="#[2126899]"/>
 
                     <munit:variable
-                            key="changeType"
-                            value='#["UPDATE"]'
-                            mediaType="application/java"/>
+                        key="changeType"
+                        value="#['UPDATE']"/>
 
                 </munit:variables>
 
             </munit:set-event>
 
             <flow-ref
-                    name="contact-contact-detail-enrichment-subflow"
-                    doc:name="Execute Contact Enrichment Failure Flow"/>
+                name="contact-contact-detail-enrichment-subflow"
+                doc:name="Execute Contact Enrichment Failure Flow"/>
 
         </munit:execution>
 
     </munit:test>
-    
-    
-    
-    <!-- ========================================================= -->
-<!-- JMS Publisher Subflow Coverage                            -->
-<!-- ========================================================= -->
 
-<munit:test
-        name="testJmsMessagePublisher"
-        description="Verify enriched Contact message is published to the configured JMS queue">
+    <munit:test
+        name="testAmqpMessagePublisher"
+        description="Verify enriched Contact message is published to RabbitMQ">
 
-    <munit:behavior>
+        <munit:behavior>
 
-        <!-- Mock only the external JMS operation -->
-        <munit-tools:mock-when
-                processor="jms:publish"
-                doc:name="Mock Contact JMS Publish">
+            <munit-tools:mock-when
+                processor="amqp:publish"
+                doc:name="Mock RabbitMQ Publication">
 
-            <munit-tools:with-attributes>
+                <munit-tools:then-return>
+                    <munit-tools:payload
+                        value="#[payload]"
+                        mediaType="application/java"/>
+                </munit-tools:then-return>
 
-                <munit-tools:with-attribute
-                        attributeName="doc:name"
-                        whereValue='#["Publish Contact Onboarding JMS Message"]'/>
+            </munit-tools:mock-when>
 
-            </munit-tools:with-attributes>
+        </munit:behavior>
 
-            <munit-tools:then-return>
+        <munit:execution>
 
-                <munit-tools:payload
-        value="#[payload]"
-        mediaType="application/java"/>
+            <munit:set-event doc:name="Set AMQP Publication Context">
 
-            </munit-tools:then-return>
-
-        </munit-tools:mock-when>
-
-    </munit:behavior>
-
-    <munit:execution>
-
-        <munit:set-event doc:name="Set Contact JMS Publication Context">
-
-            <munit:payload
+                <munit:payload
                     value="#[null]"
                     mediaType="application/java"/>
 
-            <munit:variables>
+                <munit:variables>
 
-                <munit:variable
+                    <munit:variable
                         key="correlationId"
-                        value='#["TEST-CORRELATION-JMS-001"]'
-                        mediaType="application/java"/>
+                        value="#['TEST-CORRELATION-AMQP-001']"/>
 
-                <munit:variable
+                    <munit:variable
                         key="contactId"
-                        value='#["003JMSPUBLISH"]'
-                        mediaType="application/java"/>
+                        value="#['003AMQPPUBLISH']"/>
 
-                <munit:variable
+                    <munit:variable
                         key="changeType"
-                        value='#["UPDATE"]'
-                        mediaType="application/java"/>
+                        value="#['UPDATE']"/>
 
-                <munit:variable
+                    <munit:variable
                         key="replayId"
-                        value="#[2126833]"
-                        mediaType="application/java"/>
+                        value="#[2126833]"/>
 
-<munit:variable
-        key="jmsPayload"
-        mediaType="application/java"
-        value='#[{
-            contact_sf_id: "003JMSPUBLISH",
-            first_name: "Priya",
-            last_name: "Adhikari",
-            email: "priya.adhikari@test.com",
-            phone: "9876543210",
-            account_id: "001JMSPUBLISH",
-            job_title: "Technical Trainee",
-            department: "Technology",
-            reports_to_id: null,
-            reports_to_name: "Unassigned",
-            account_name: "Microsoft",
-            account_industry: "Technology",
-            account_type: "Customer - Direct",
-            account_revenue: 15000000,
-            account_contact_count: 4,
-            contact_priority: "HIGH",
-            modified_date: "2026-10-09 20:15:35"
-        }]'/>
+                    <munit:variable
+                        key="jmsPayload"
+                        mediaType="application/java"
+                        value='#[{
+                            contact_sf_id: "003AMQPPUBLISH",
+                            first_name: "Priya",
+                            last_name: "Adhikari",
+                            email: "priya.adhikari@test.com",
+                            phone: "9876543210",
+                            account_id: "001AMQPPUBLISH",
+                            job_title: "Technical Trainee",
+                            department: "Technology",
+                            reports_to_id: null,
+                            reports_to_name: "Unassigned",
+                            account_name: "Microsoft",
+                            account_industry: "Technology",
+                            account_type: "Customer - Direct",
+                            account_revenue: 15000000,
+                            account_contact_count: 4,
+                            contact_priority: "HIGH",
+                            modified_date: "2026-10-09 20:15:35"
+                        }]'/>
 
-            </munit:variables>
+                </munit:variables>
 
-        </munit:set-event>
+            </munit:set-event>
 
-        <flow-ref
+            <flow-ref
                 name="contact-jms-message-publisher-subflow"
-                doc:name="Execute Contact JMS Publisher Subflow"/>
+                doc:name="Execute RabbitMQ Publisher Subflow"/>
 
-    </munit:execution>
+        </munit:execution>
 
-    <munit:validation>
+        <munit:validation>
 
-        <munit-tools:verify-call
-                processor="jms:publish"
+            <munit-tools:verify-call
+                processor="amqp:publish"
                 times="1"
-                doc:name="Verify Contact JMS Message Published">
+                doc:name="Verify RabbitMQ Message Published"/>
 
-            <munit-tools:with-attributes>
-
-                <munit-tools:with-attribute
-                        attributeName="doc:name"
-                        whereValue='#["Publish Contact Onboarding JMS Message"]'/>
-
-            </munit-tools:with-attributes>
-
-        </munit-tools:verify-call>
-
-        <munit-tools:assert-that
+            <munit-tools:assert-that
                 expression="#[vars.correlationId]"
-                is='#[MunitTools::equalTo("TEST-CORRELATION-JMS-001")]'
-                message="JMS correlation ID was not preserved."
-                doc:name="Assert JMS Correlation Identifier"/>
+                is="#[MunitTools::equalTo('TEST-CORRELATION-AMQP-001')]"
+                message="AMQP correlation ID was not preserved."/>
 
-        <munit-tools:assert-that
+            <munit-tools:assert-that
                 expression="#[vars.jmsPayload.contact_sf_id]"
-                is='#[MunitTools::equalTo("003JMSPUBLISH")]'
-                message="JMS Contact ID was not preserved."
-                doc:name="Assert JMS Contact Identifier"/>
+                is="#[MunitTools::equalTo('003AMQPPUBLISH')]"
+                message="AMQP Contact ID was not preserved."/>
 
-        <munit-tools:assert-that
+            <munit-tools:assert-that
                 expression="#[vars.changeType]"
-                is='#[MunitTools::equalTo("UPDATE")]'
-                message="JMS Event Type was not preserved."
-                doc:name="Assert JMS Event Type"/>
+                is="#[MunitTools::equalTo('UPDATE')]"
+                message="AMQP event type was not preserved."/>
 
-        <munit-tools:assert-that
+            <munit-tools:assert-that
                 expression="#[vars.replayId]"
                 is="#[MunitTools::equalTo(2126833)]"
-                message="JMS Replay ID was not preserved."
-                doc:name="Assert JMS Replay Identifier"/>
+                message="AMQP replay ID was not preserved."/>
 
-    </munit:validation>
+        </munit:validation>
 
-</munit:test>
+    </munit:test>
 
 </mule>

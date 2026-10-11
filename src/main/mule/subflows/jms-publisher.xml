@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule
+    xmlns="http://www.mulesoft.org/schema/mule/core"
+    xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+    xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp"
+    xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+        http://www.mulesoft.org/schema/mule/core
+        http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+
+        http://www.mulesoft.org/schema/mule/ee/core
+        http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+
+        http://www.mulesoft.org/schema/mule/amqp
+        http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd">
+
+    <!-- ========================================================= -->
+    <!-- Build the Contact Onboarding message payload              -->
+    <!-- ========================================================= -->
+
+    <sub-flow
+            name="contact-jms-payload-builder-subflow"
+            doc:id="d92dfb54-c26e-44cb-bdcb-c8245bade9e7">
+
+        <logger
+                level="INFO"
+                doc:name="Log JMS Payload Construction Start"
+                message='#[write({
+                    event: "CONTACT_ONBOARDING_JMS_PAYLOAD_BUILD_STARTED",
+                    correlationId:
+                        (vars.correlationId default correlationId) as String,
+                    contactId:
+                        vars.contactId
+                            default vars.contactDetails.Id
+                            default "UNKNOWN",
+                    replayId:
+                        vars.replayId default "NOT_AVAILABLE",
+                    changeType:
+                        vars.changeType default "UNKNOWN"
+                }, "application/json")]'/>
+
+        <ee:transform doc:name="Build Contact Onboarding JMS Payload">
+
+            <ee:message>
+            </ee:message>
+
+            <ee:variables>
+
+                <ee:set-variable variableName="jmsPayload"><![CDATA[
+%dw 2.0
+output application/json
+---
+{
+    contact_sf_id:
+        vars.contactDetails.Id
+            default vars.contactId
+            default null,
+
+    first_name:
+        vars.contactDetails.FirstName default null,
+
+    last_name:
+        vars.contactDetails.LastName default null,
+
+    email:
+        lower(vars.contactDetails.Email default ""),
+
+    phone:
+        vars.contactDetails.Phone default null,
+
+    account_id:
+        vars.contactDetails.AccountId
+            default vars.accountId
+            default null,
+
+    job_title:
+        vars.contactDetails.Title default null,
+
+    department:
+        vars.contactDetails.Department default null,
+
+    reports_to_id:
+        vars.contactDetails.ReportsToId
+            default vars.reportsToId
+            default null,
+
+    reports_to_name:
+        vars.managerDetails.Name default "Unassigned",
+
+    account_name:
+        vars.accountDetails.Name default "Unknown",
+
+    account_industry:
+        vars.accountDetails.Industry default null,
+
+    account_type:
+        vars.accountDetails.Type default null,
+
+    account_revenue:
+        vars.accountDetails.AnnualRevenue default null,
+
+    account_contact_count:
+        vars.accountContactCount default 0,
+
+    contact_priority:
+        vars.contactPriority default "NORMAL",
+
+    modified_date:
+        if (!isEmpty(vars.contactDetails.LastModifiedDate default null))
+            (
+                vars.contactDetails.LastModifiedDate
+                    as DateTime {
+                        format: "yyyy-MM-dd'T'HH:mm:ss.SSSX"
+                    }
+            ) as String {
+                format: "yyyy-MM-dd HH:mm:ss"
+            }
+        else
+            null
+}
+                ]]></ee:set-variable>
+
+            </ee:variables>
+
+        </ee:transform>
+
+        <logger
+                level="INFO"
+                doc:name="Log JMS Payload Construction Result"
+                message='#[write({
+                    event: "CONTACT_ONBOARDING_JMS_PAYLOAD_BUILT",
+                    correlationId:
+                        vars.correlationId default "NOT_AVAILABLE",
+                    contactId:
+                        vars.contactId
+                            default vars.jmsPayload.contact_sf_id
+                            default "UNKNOWN",
+                    replayId:
+                        vars.replayId default "NOT_AVAILABLE",
+                    changeType:
+                        vars.changeType default "UNKNOWN",
+                    accountId:
+                        vars.jmsPayload.account_id default "NOT_AVAILABLE",
+                    accountName:
+                        vars.jmsPayload.account_name default "Unknown",
+                    accountContactCount:
+                        vars.jmsPayload.account_contact_count default 0,
+                    contactPriority:
+                        vars.jmsPayload.contact_priority default "NORMAL",
+                    modifiedDate:
+                        vars.jmsPayload.modified_date default null
+                }, "application/json")]'/>
+
+    </sub-flow>
+
+    <!-- ========================================================= -->
+    <!-- Publish the Contact Onboarding message to RabbitMQ        -->
+    <!-- ========================================================= -->
+
+    <sub-flow
+            name="contact-jms-message-publisher-subflow"
+            doc:id="e3035854-38cd-4129-81ea-4b983c0200d0">
+
+        <logger
+                level="INFO"
+                doc:name="Log AMQP Publication Start"
+                message='#[write({
+                    event: "CONTACT_ONBOARDING_AMQP_PUBLICATION_STARTED",
+                    correlationId:
+                        vars.correlationId default "NOT_AVAILABLE",
+                    contactId:
+                        vars.contactId
+                            default vars.jmsPayload.contact_sf_id
+                            default "UNKNOWN",
+                    replayId:
+                        vars.replayId default "NOT_AVAILABLE",
+                    changeType:
+                        vars.changeType default "UNKNOWN",
+                    exchange:
+                        p("rabbitmq.onboardingExchange"),
+                    routingKey:
+                        p("rabbitmq.onboardingRoutingKey")
+                }, "application/json")]'/>
+
+        <until-successful
+                maxRetries="${app.maxRetries}"
+                millisBetweenRetries="${app.retryInterval}"
+                doc:name="Retry Publish Contact Onboarding AMQP Message">
+
+            <amqp:publish
+        config-ref="AMQP_Config"
+        exchangeName="${rabbitmq.onboardingExchange}"
+        deliveryMode="PERSISTENT"
+        requestBrokerConfirms="${rabbitmq.publisherConfirms}"
+        mandatory="${rabbitmq.mandatoryPublishing}"
+        immediate="false"
+        sendCorrelationId="ALWAYS"
+        doc:name="Publish Contact Onboarding AMQP Message">
+
+    <amqp:routing-keys>
+        <amqp:routing-key
+                value="${rabbitmq.onboardingRoutingKey}"/>
+    </amqp:routing-keys>
+
+    <amqp:message>
+
+        <amqp:body><![CDATA[#[vars.jmsPayload]]]></amqp:body>
+
+        <amqp:properties
+                contentType="application/json"
+                correlationId="#[vars.correlationId default correlationId]"/>
+
+        <amqp:headers><![CDATA[#[output application/java
+---
+{
+    CorrelationId:
+        (vars.correlationId default correlationId) as String,
+    ContactSfId:
+        (
+            vars.contactId
+                default vars.jmsPayload.contact_sf_id
+                default "UNKNOWN"
+        ) as String,
+    SourceSystem:
+        "Salesforce",
+    EventType:
+        (vars.changeType default "UNKNOWN") as String,
+    ReplayId:
+        (vars.replayId default -1) as String
+}]]]></amqp:headers>
+
+    </amqp:message>
+
+</amqp:publish>
+        </until-successful>
+
+        <logger
+                level="INFO"
+                doc:name="Log Successful Contact Onboarding AMQP Publication"
+                message='#[write({
+                    event: "CONTACT_ONBOARDING_MESSAGE_PUBLISHED",
+                    transport: "AMQP",
+                    broker: "RabbitMQ",
+                    correlationId:
+                        vars.correlationId default "NOT_AVAILABLE",
+                    contactId:
+                        vars.contactId
+                            default vars.jmsPayload.contact_sf_id
+                            default "UNKNOWN",
+                    replayId:
+                        vars.replayId default "NOT_AVAILABLE",
+                    changeType:
+                        vars.changeType default "UNKNOWN",
+                    exchange:
+                        p("rabbitmq.onboardingExchange"),
+                    routingKey:
+                        p("rabbitmq.onboardingRoutingKey"),
+                    publisherConfirmed:
+                        true
+                }, "application/json")]'/>
+
+    </sub-flow>
+
+</mule>

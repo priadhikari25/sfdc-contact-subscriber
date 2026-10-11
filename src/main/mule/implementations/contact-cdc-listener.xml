@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+        http://www.mulesoft.org/schema/mule/core
+        http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/ee/core
+        http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+        http://www.mulesoft.org/schema/mule/salesforce
+        http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+
+    <flow
+            name="contact-cdc-listenerFlow"
+            doc:id="92388863-712e-45a0-9094-e9d7b2b755e3">
+
+        <salesforce:replay-channel-listener
+                config-ref="Salesforce_Config"
+                streamingChannel="${cdc.streamingChannel}"
+                replayOption="FROM_REPLAY_ID"
+                replayId="-1"
+                doc:name="Listen for Salesforce Contact CDC Events"
+                doc:id="3ae235f7-867d-492c-bad7-66635cfd4280"/>
+
+        <ee:transform
+                doc:name="Normalize Contact CDC Event and Initialize Context">
+
+            <ee:message>
+
+                <ee:set-payload><![CDATA[
+%dw 2.0
+output application/json
+---
+{
+    data: {
+        schema: payload.data.schema default null,
+        payload: payload.data.payload default {},
+        event: {
+            replayId: payload.data.event.replayId default null
+        }
+    },
+    channel:
+        payload.channel
+            default p("cdc.streamingChannel")
+}
+                ]]></ee:set-payload>
+
+            </ee:message>
+
+            <ee:variables>
+
+                <ee:set-variable variableName="correlationId"><![CDATA[
+%dw 2.0
+output application/java
+---
+uuid()
+                ]]></ee:set-variable>
+
+                <ee:set-variable variableName="replayId"><![CDATA[
+%dw 2.0
+output application/java
+---
+payload.data.event.replayId default null
+                ]]></ee:set-variable>
+
+                <ee:set-variable variableName="contactId"><![CDATA[
+%dw 2.0
+output application/java
+---
+payload.data.payload.ChangeEventHeader.recordIds[0] default null
+                ]]></ee:set-variable>
+
+                <ee:set-variable variableName="changeType"><![CDATA[
+%dw 2.0
+output application/java
+---
+payload.data.payload.ChangeEventHeader.changeType default "UNKNOWN"
+                ]]></ee:set-variable>
+
+                <ee:set-variable variableName="cdcChannel"><![CDATA[
+%dw 2.0
+output application/java
+---
+payload.channel default p("salesforce.cdc.streamingChannel")
+                ]]></ee:set-variable>
+
+            </ee:variables>
+
+        </ee:transform>
+
+        <logger
+                level="INFO"
+                doc:name="Log Contact CDC Event Receipt"
+                message='#[write({
+                    event: "CONTACT_CDC_EVENT_RECEIVED",
+                    correlationId: vars.correlationId default "NOT_AVAILABLE",
+                    contactId: vars.contactId default "UNKNOWN",
+                    changeType: vars.changeType default "UNKNOWN",
+                    channel: vars.cdcChannel default "NOT_AVAILABLE"
+                }, "application/json")]'/>
+
+        <logger
+                level="INFO"
+                doc:name="Log Salesforce CDC Replay Identifier"
+                message='#[write({
+                    event: "CONTACT_CDC_REPLAY_ID_RECEIVED",
+                    correlationId: vars.correlationId default "NOT_AVAILABLE",
+                    contactId: vars.contactId default "UNKNOWN",
+                    replayId: vars.replayId default "NOT_AVAILABLE",
+                    channel: vars.cdcChannel default "NOT_AVAILABLE"
+                }, "application/json")]'/>
+
+        <flow-ref
+                name="contact-onboarding-processing-subflow"
+                doc:name="Process Contact Onboarding Event"/>
+
+        <error-handler>
+
+            <on-error-continue
+                    type="MULE:VALIDATION"
+                    doc:name="Handle Validation Error">
+
+                <logger
+                        level="ERROR"
+                        doc:name="Log Validation Error"
+                        message='#[write({
+                            event: "PROCESS_VALIDATION_FAILED",
+                            correlationId: vars.correlationId default "NOT_AVAILABLE",
+                            contactId: vars.contactId default "UNKNOWN",
+                            replayId: vars.replayId default "NOT_AVAILABLE",
+                            errorType: (error.errorType.namespace default "MULE")
+                                ++ ":"
+                                ++ (error.errorType.identifier default "VALIDATION"),
+                            description: error.description default "Validation failed"
+                        }, "application/json")]'/>
+
+            </on-error-continue>
+
+            <on-error-propagate
+                    type="MULE:EXPRESSION"
+                    doc:name="Handle Expression Error">
+
+                <logger
+                        level="ERROR"
+                        doc:name="Log Expression Error"
+                        message='#[write({
+                            event: "PROCESS_EXPRESSION_ERROR",
+                            correlationId: vars.correlationId default "NOT_AVAILABLE",
+                            contactId: vars.contactId default "UNKNOWN",
+                            replayId: vars.replayId default "NOT_AVAILABLE",
+                            errorType: (error.errorType.namespace default "MULE")
+                                ++ ":"
+                                ++ (error.errorType.identifier default "EXPRESSION"),
+                            description: error.description default "Expression processing failed"
+                        }, "application/json")]'/>
+
+            </on-error-propagate>
+
+            <on-error-propagate
+                    type="ANY"
+                    doc:name="Handle Unexpected Error">
+
+                <logger
+                        level="ERROR"
+                        doc:name="Log Unexpected Error"
+                        message='#[write({
+                            event: "PROCESS_UNEXPECTED_ERROR",
+                            correlationId: vars.correlationId default "NOT_AVAILABLE",
+                            contactId: vars.contactId default "UNKNOWN",
+                            replayId: vars.replayId default "NOT_AVAILABLE",
+                            errorType: (error.errorType.namespace default "MULE")
+                                ++ ":"
+                                ++ (error.errorType.identifier default "UNKNOWN"),
+                            description: error.description default "Unexpected processing failure"
+                        }, "application/json")]'/>
+
+            </on-error-propagate>
+
+        </error-handler>
+
+    </flow>
+
+    <sub-flow name="contact-onboarding-processing-subflow">
+
+        <logger
+                level="INFO"
+                doc:name="Log Contact Processing Start"
+                message='#[write({
+                    event: "CONTACT_ONBOARDING_PROCESSING_STARTED",
+                    correlationId: vars.correlationId default "NOT_AVAILABLE",
+                    contactId: vars.contactId default "UNKNOWN",
+                    replayId: vars.replayId default "NOT_AVAILABLE"
+                }, "application/json")]'/>
+
+        <flow-ref
+                name="contact-contact-detail-enrichment-subflow"
+                doc:name="Retrieve Salesforce Contact Details"/>
+
+        <flow-ref
+                name="contact-account-enrichment-subflow"
+                doc:name="Retrieve Related Account Details"/>
+
+        <flow-ref
+                name="contact-manager-enrichment-subflow"
+                doc:name="Retrieve Reports To Contact Details"/>
+
+        <flow-ref
+                name="contact-account-contact-count-enrichment-subflow"
+                doc:name="Retrieve Related Account Contact Count"/>
+
+        <flow-ref
+                name="contact-priority-calculation-subflow"
+                doc:name="Calculate Contact Priority"/>
+
+        <flow-ref
+                name="contact-jms-payload-builder-subflow"
+                doc:name="Build Contact Onboarding JMS Payload"/>
+
+        <flow-ref
+                name="contact-jms-message-publisher-subflow"
+                doc:name="Publish Contact Onboarding JMS Message"/>
+
+        <logger
+                level="INFO"
+                doc:name="Log Contact Processing Completion"
+                message='#[write({
+                    event: "CONTACT_ONBOARDING_PROCESSING_COMPLETED",
+                    correlationId: vars.correlationId default "NOT_AVAILABLE",
+                    contactId: vars.contactId default "UNKNOWN",
+                    replayId: vars.replayId default "NOT_AVAILABLE",
+                    contactPriority: vars.contactPriority default "NORMAL"
+                }, "application/json")]'/>
+
+    </sub-flow>
+
+</mule>

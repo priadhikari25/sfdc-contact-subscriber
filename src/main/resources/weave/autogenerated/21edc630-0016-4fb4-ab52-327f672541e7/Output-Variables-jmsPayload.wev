@@ -1,0 +1,21 @@
+%dw 2.0
+
+type auto_21edc630_0016_4fb4_ab52_327f672541e7_Output_Variables_jmsPayload = {|
+  contact_sf_id: Null, 
+  first_name: Null, 
+  last_name: Null, 
+  email: String, 
+  phone: Null, 
+  account_id: Null, 
+  job_title: Null, 
+  department: Null, 
+  reports_to_id: Null, 
+  account_name: String, 
+  account_industry: Null, 
+  account_type: Null, 
+  account_revenue: Null, 
+  account_contact_count: Null, 
+  contact_priority: Null, 
+  modified_date: Null
+|}
+

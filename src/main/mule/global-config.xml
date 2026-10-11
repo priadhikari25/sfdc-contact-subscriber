@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule
+    xmlns="http://www.mulesoft.org/schema/mule/core"
+    xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+    xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp"
+    xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+    xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+    xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd 
+        http://www.mulesoft.org/schema/mule/core
+        http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+
+        http://www.mulesoft.org/schema/mule/tls
+        http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+
+        http://www.mulesoft.org/schema/mule/amqp
+        http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd
+
+        http://www.mulesoft.org/schema/mule/salesforce
+        http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+
+        http://www.mulesoft.org/schema/mule/secure-properties
+        http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd">
+
+    <!-- Local-only AES decryption key. File is excluded from Git. -->
+    <configuration-properties
+            file="local-secrets.properties"
+            doc:name="Local Secrets"/>
+
+    <!-- Non-secret environment configuration. -->
+    <configuration-properties
+            file="config/config-dev.yaml"
+            doc:name="Development Configuration Properties"/>
+
+    <!-- Encrypted Salesforce and RabbitMQ credentials. -->
+    <secure-properties:config
+            name="Secure_Properties_Config"
+            doc:name="Secure Properties Config"
+            file="secure/secure.properties"
+            key="${secure.key}">
+
+        <secure-properties:encrypt
+                algorithm="AES"
+                mode="CBC"/>
+
+    </secure-properties:config>
+
+    <!-- TLS 1.2 for CloudAMQP. -->
+    <tls:context
+            name="RabbitMQ_TLS_Context"
+            enabledProtocols="TLSv1.2">
+
+        <tls:trust-store/>
+
+    </tls:context>
+
+    <!-- Salesforce Basic authentication. -->
+    <salesforce:sfdc-config
+            name="Salesforce_Config"
+            doc:name="Salesforce Config"
+            doc:id="b70ae50c-437b-4106-a8b6-19828ad2b68f">
+
+        <salesforce:basic-connection
+                username="${salesforce.username}"
+                password="${secure::salesforce.password}"
+                securityToken="${secure::salesforce.securityToken}"/>
+
+    </salesforce:sfdc-config>
+
+    <!-- CloudAMQP RabbitMQ connection. -->
+    <amqp:config
+            name="AMQP_Config"
+            doc:name="CloudAMQP RabbitMQ Config"
+            doc:id="7ad1daf4-54e7-4690-bd7d-74afcae9a957"
+            createFallbackQueue="false"
+            createFallbackExchange="false"
+            sendCorrelationId="ALWAYS">
+
+        <amqp:connection
+                host="${rabbitmq.host}"
+                port="${rabbitmq.port}"
+                virtualHost="${rabbitmq.virtualHost}"
+                username="${rabbitmq.username}"
+                password="${secure::rabbitmq.password}"
+                useTls="${rabbitmq.useTls}"
+                useSni="${rabbitmq.useSni}"
+                tlsContext="RabbitMQ_TLS_Context">
+
+            <reconnection>
+                <reconnect
+                        frequency="5000"
+                        count="5"/>
+            </reconnection>
+
+        </amqp:connection>
+
+        <amqp:publisher-config
+                deliveryMode="PERSISTENT"
+                requestBrokerConfirms="${rabbitmq.publisherConfirms}"
+                mandatory="${rabbitmq.mandatoryPublishing}"
+                immediate="false"/>
+
+    </amqp:config>
+
+</mule>

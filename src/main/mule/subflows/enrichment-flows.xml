@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core
+        http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+
+    <sub-flow name="contact-priority-calculation-subflow">
+
+        <logger
+                level="INFO"
+                doc:name="Log Contact Priority Calculation Start"
+                message='#[write({
+                    event: "CONTACT_PRIORITY_CALCULATION_STARTED",
+                    correlationId: vars.correlationId default "NOT_AVAILABLE",
+                    contactId: vars.contactId
+                        default vars.contactDetails.Id
+                        default "UNKNOWN",
+                    replayId: vars.replayId default "NOT_AVAILABLE",
+                    changeType: vars.changeType default "UNKNOWN",
+                    accountType: vars.accountDetails.Type default "NOT_AVAILABLE",
+                    annualRevenue: vars.accountDetails.AnnualRevenue default 0
+                }, "application/json")]'/>
+
+        <set-variable
+                variableName="contactPriority"
+                doc:name="Determine Contact Priority"
+                value='#[if (
+                            ((vars.accountDetails.AnnualRevenue default 0) as Number)
+                                > 10000000
+                        )
+                            "HIGH"
+                        else if (
+                            lower(
+                                (vars.accountDetails.Type default "") as String
+                            ) contains "customer"
+                        )
+                            "MEDIUM"
+                        else
+                            "NORMAL"]'/>
+
+        <logger
+                level="INFO"
+                doc:name="Log Contact Priority Calculation Result"
+                message='#[write({
+                    event: "CONTACT_PRIORITY_CALCULATION_COMPLETED",
+                    correlationId: vars.correlationId default "NOT_AVAILABLE",
+                    contactId: vars.contactId
+                        default vars.contactDetails.Id
+                        default "UNKNOWN",
+                    replayId: vars.replayId default "NOT_AVAILABLE",
+                    changeType: vars.changeType default "UNKNOWN",
+                    accountType: vars.accountDetails.Type default "NOT_AVAILABLE",
+                    annualRevenue: vars.accountDetails.AnnualRevenue default 0,
+                    contactPriority: vars.contactPriority default "NORMAL"
+                }, "application/json")]'/>
+
+    </sub-flow>
+
+</mule>

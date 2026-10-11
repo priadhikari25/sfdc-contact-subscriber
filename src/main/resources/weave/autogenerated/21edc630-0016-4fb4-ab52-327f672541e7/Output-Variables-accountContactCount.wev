@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_21edc630_0016_4fb4_ab52_327f672541e7_Output_Variables_accountContactCount = Any
+

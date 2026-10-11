@@ -1,0 +1,13 @@
+target/
+bin/
+.settings/
+.classpath
+.project
+exchange-docs/
+reports/
+*.log
+src/main/resources/rabbitmq-local.properties*.backup
+*.backup
+src/main/resources/rabbitmq-local.properties
+src/main/resources/local-secrets.properties
+.mule/

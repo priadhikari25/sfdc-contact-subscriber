@@ -1,0 +1,23 @@
+salesforce:
+  username: "priadhikari.d7df45ca9572@agentforce.com"
+
+app:
+  maxRetries: "3"
+  retryInterval: "5000"
+
+cdc:
+  streamingChannel: "/data/ContactChangeEvent"
+  replayOption: "FROM_REPLAY_ID"
+  replayId: "-1"
+
+rabbitmq:
+  host: "shrimp.rmq.cloudamqp.com"
+  port: "5671"
+  virtualHost: "sprvzpca"
+  username: "sprvzpca"
+  useTls: "true"
+  useSni: "true"
+  onboardingExchange: "contact.onboarding.exchange"
+  onboardingRoutingKey: "contact.onboarding"
+  publisherConfirms: "true"
+  mandatoryPublishing: "true"

@@ -1,0 +1,377 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule
+    xmlns="http://www.mulesoft.org/schema/mule/core"
+    xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+    xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+    xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core
+        http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+
+        http://www.mulesoft.org/schema/mule/ee/core
+        http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+
+        http://www.mulesoft.org/schema/mule/salesforce
+        http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+
+    <!-- ========================================================= -->
+    <!-- Retrieve and initialize Salesforce Contact information     -->
+    <!-- ========================================================= -->
+
+    <sub-flow
+            name="contact-contact-detail-enrichment-subflow"
+            doc:id="8c45e6d2-0561-420a-bea3-d18232d2c12a">
+
+        <logger
+                level="INFO"
+                doc:name="Log Contact Detail Enrichment Start"
+                message='#[write({
+                    event: "CONTACT_DETAIL_ENRICHMENT_STARTED",
+                    correlationId: vars.correlationId default "NOT_AVAILABLE",
+                    contactId: vars.contactId default "UNKNOWN",
+                    replayId: vars.replayId default "NOT_AVAILABLE",
+                    changeType: vars.changeType default "UNKNOWN"
+                }, "application/json")]'/>
+
+        <until-successful
+                maxRetries="${app.maxRetries}"
+                millisBetweenRetries="${app.retryInterval}"
+                doc:name="Retry Retrieve Salesforce Contact Details"
+                doc:id="40ee50c1-0b27-48a4-b5f9-db5dfad7c217">
+
+            <salesforce:query
+                    config-ref="Salesforce_Config"
+                    doc:name="Retrieve Salesforce Contact Details"
+                    doc:id="ed1f57fb-3496-4adc-9fd8-d27cf173774d">
+
+                <salesforce:salesforce-query><![CDATA[
+SELECT
+    Id,
+    FirstName,
+    LastName,
+    Email,
+    Phone,
+    AccountId,
+    Title,
+    Department,
+    ReportsToId,
+    LastModifiedDate
+FROM Contact
+WHERE Id = ':contactId'
+                ]]></salesforce:salesforce-query>
+
+                <salesforce:parameters><![CDATA[#[%dw 2.0
+output application/java
+---
+{
+    contactId: vars.contactId
+}]]]></salesforce:parameters>
+
+            </salesforce:query>
+
+        </until-successful>
+
+        <!--
+            Initialize all variables derived from the same Contact query
+            in one Transform Message.
+        -->
+        <ee:transform
+                doc:name="Initialize Salesforce Contact Enrichment Variables">
+
+            <ee:message>
+            </ee:message>
+
+            <ee:variables>
+
+                <ee:set-variable variableName="contactDetails"><![CDATA[
+%dw 2.0
+output application/java
+var contactRecords = (payload default []) as Array
+---
+contactRecords[0] default {}
+                ]]></ee:set-variable>
+
+                <ee:set-variable variableName="accountId"><![CDATA[
+%dw 2.0
+output application/java
+var contactRecords = (payload default []) as Array
+---
+contactRecords[0].AccountId default null
+                ]]></ee:set-variable>
+
+                <ee:set-variable variableName="reportsToId"><![CDATA[
+%dw 2.0
+output application/java
+var contactRecords = (payload default []) as Array
+---
+contactRecords[0].ReportsToId default null
+                ]]></ee:set-variable>
+
+            </ee:variables>
+
+        </ee:transform>
+
+        <logger
+                level="INFO"
+                doc:name="Log Contact Detail Enrichment Result"
+                message='#[write({
+                    event: "CONTACT_DETAIL_ENRICHMENT_COMPLETED",
+                    correlationId: vars.correlationId default "NOT_AVAILABLE",
+                    contactId: vars.contactDetails.Id
+                        default vars.contactId
+                        default "UNKNOWN",
+                    replayId: vars.replayId default "NOT_AVAILABLE",
+                    accountId: vars.accountId default "NOT_AVAILABLE",
+                    reportsToId: vars.reportsToId default "NOT_AVAILABLE",
+                    contactFound: !isEmpty(vars.contactDetails)
+                }, "application/json")]'/>
+
+    </sub-flow>
+
+    <!-- ========================================================= -->
+    <!-- Retrieve related Salesforce Account information            -->
+    <!-- ========================================================= -->
+
+    <sub-flow
+            name="contact-account-enrichment-subflow"
+            doc:id="afa05ffd-fc4c-4ee4-94ce-b9af092ce907">
+
+        <choice
+                doc:name="Evaluate Account Relationship Availability"
+                doc:id="9977b8c5-5740-4ac6-8b80-a5f0c1cdb6c2">
+
+            <when expression="#[!isEmpty(vars.accountId)]">
+
+                <until-successful
+                        maxRetries="${app.maxRetries}"
+                        millisBetweenRetries="${app.retryInterval}"
+                        doc:name="Retry Retrieve Related Account Details"
+                        doc:id="e32ec58e-b7b0-4bc5-a3d0-7fef15e4ff20">
+
+                    <salesforce:query
+                            config-ref="Salesforce_Config"
+                            doc:name="Retrieve Related Account Details"
+                            doc:id="b23928f7-8c44-4a21-a30b-b8e57521229a">
+
+                        <salesforce:salesforce-query><![CDATA[
+SELECT
+    Name,
+    Industry,
+    Type,
+    AnnualRevenue
+FROM Account
+WHERE Id = ':accountId'
+                        ]]></salesforce:salesforce-query>
+
+                        <salesforce:parameters><![CDATA[#[%dw 2.0
+output application/java
+---
+{
+    accountId: vars.accountId
+}]]]></salesforce:parameters>
+
+                    </salesforce:query>
+
+                </until-successful>
+
+                <set-variable
+                        variableName="accountDetails"
+                        doc:name="Store Related Account Details"
+                        value='#[((payload default []) as Array)[0] default {
+                            Name: "Unknown",
+                            Industry: null,
+                            Type: null,
+                            AnnualRevenue: null
+                        }]'/>
+
+            </when>
+
+            <otherwise>
+
+                <set-variable
+                        variableName="accountDetails"
+                        doc:name="Assign Default Account Information"
+                        value='#[{
+                            Name: "Unknown",
+                            Industry: null,
+                            Type: null,
+                            AnnualRevenue: null
+                        }]'/>
+
+            </otherwise>
+
+        </choice>
+
+        <logger
+                level="INFO"
+                doc:name="Log Account Enrichment Result"
+                message='#[write({
+                    event: "ACCOUNT_ENRICHMENT_COMPLETED",
+                    correlationId: vars.correlationId default "NOT_AVAILABLE",
+                    contactId: vars.contactId default "UNKNOWN",
+                    replayId: vars.replayId default "NOT_AVAILABLE",
+                    accountId: vars.accountId default "NOT_AVAILABLE",
+                    accountName: vars.accountDetails.Name default "Unknown",
+                    accountAvailable: (vars.accountDetails.Name default "Unknown") != "Unknown"
+                }, "application/json")]'/>
+
+    </sub-flow>
+
+    <!-- ========================================================= -->
+    <!-- Retrieve Reports To Contact information                    -->
+    <!-- ========================================================= -->
+
+    <sub-flow
+            name="contact-manager-enrichment-subflow"
+            doc:id="9598e7b7-88c1-44f3-a92d-2804e945db08">
+
+        <choice
+                doc:name="Evaluate Reports To Relationship Availability"
+                doc:id="4bc65c08-ddf1-4c9c-8e59-218bb2be3622">
+
+            <when expression="#[!isEmpty(vars.reportsToId)]">
+
+                <until-successful
+                        maxRetries="${app.maxRetries}"
+                        millisBetweenRetries="${app.retryInterval}"
+                        doc:name="Retry Retrieve Reports To Contact Details"
+                        doc:id="cd6958a2-a2fc-4f60-be0c-cc6870bfdd28">
+
+                    <salesforce:query
+                            config-ref="Salesforce_Config"
+                            doc:name="Retrieve Reports To Contact Details"
+                            doc:id="e6f7c042-1ac8-4859-b935-5bf62b47e6d3">
+
+                        <salesforce:salesforce-query><![CDATA[
+SELECT
+    Id,
+    Name
+FROM Contact
+WHERE Id = ':reportsToId'
+                        ]]></salesforce:salesforce-query>
+
+                        <salesforce:parameters><![CDATA[#[%dw 2.0
+output application/java
+---
+{
+    reportsToId: vars.reportsToId
+}]]]></salesforce:parameters>
+
+                    </salesforce:query>
+
+                </until-successful>
+
+                <set-variable
+                        variableName="managerDetails"
+                        doc:name="Store Reports To Contact Details"
+                        value='#[((payload default []) as Array)[0] default {
+                            Id: null,
+                            Name: "Unassigned"
+                        }]'/>
+
+            </when>
+
+            <otherwise>
+
+                <set-variable
+                        variableName="managerDetails"
+                        doc:name="Assign Default Reports To Information"
+                        value='#[{
+                            Id: null,
+                            Name: "Unassigned"
+                        }]'/>
+
+            </otherwise>
+
+        </choice>
+
+        <logger
+                level="INFO"
+                doc:name="Log Reports To Contact Enrichment Result"
+                message='#[write({
+                    event: "REPORTS_TO_ENRICHMENT_COMPLETED",
+                    correlationId: vars.correlationId default "NOT_AVAILABLE",
+                    contactId: vars.contactId default "UNKNOWN",
+                    replayId: vars.replayId default "NOT_AVAILABLE",
+                    reportsToId: vars.reportsToId default "NOT_AVAILABLE",
+                    managerName: vars.managerDetails.Name default "Unassigned",
+                    managerAvailable: (vars.managerDetails.Name default "Unassigned") != "Unassigned"
+                }, "application/json")]'/>
+
+    </sub-flow>
+
+    <!-- ========================================================= -->
+    <!-- Retrieve Account Contact Count                             -->
+    <!-- ========================================================= -->
+
+    <sub-flow
+            name="contact-account-contact-count-enrichment-subflow"
+            doc:id="4d1bd621-4cc2-483d-b114-445158b1d13e">
+
+        <choice doc:name="Evaluate Account Availability for Count">
+
+            <when expression="#[!isEmpty(vars.accountId)]">
+
+                <until-successful
+                        maxRetries="${app.maxRetries}"
+                        millisBetweenRetries="${app.retryInterval}"
+                        doc:name="Retry Retrieve Related Account Contact Count"
+                        doc:id="a5d99a31-13fd-4036-9fb2-c81dcb8f8672">
+
+                    <salesforce:query
+                            config-ref="Salesforce_Config"
+                            doc:name="Retrieve Related Account Contact Count"
+                            doc:id="e398a601-34d2-4766-8233-961d68d1087c">
+
+                        <salesforce:salesforce-query><![CDATA[
+SELECT Id
+FROM Contact
+WHERE AccountId = ':accountId'
+                        ]]></salesforce:salesforce-query>
+
+                        <salesforce:parameters><![CDATA[#[%dw 2.0
+output application/java
+---
+{
+    accountId: vars.accountId
+}]]]></salesforce:parameters>
+
+                    </salesforce:query>
+
+                </until-successful>
+
+                <set-variable
+                        variableName="accountContactCount"
+                        doc:name="Store Related Account Contact Count"
+                        value="#[sizeOf((payload default []) as Array)]"/>
+
+            </when>
+
+            <otherwise>
+
+                <set-variable
+                        variableName="accountContactCount"
+                        doc:name="Default Account Contact Count"
+                        value="#[0]"/>
+
+            </otherwise>
+
+        </choice>
+
+        <logger
+                level="INFO"
+                doc:name="Log Related Account Contact Count"
+                message='#[write({
+                    event: "ACCOUNT_CONTACT_COUNT_ENRICHMENT_COMPLETED",
+                    correlationId: vars.correlationId default "NOT_AVAILABLE",
+                    contactId: vars.contactId default "UNKNOWN",
+                    replayId: vars.replayId default "NOT_AVAILABLE",
+                    accountId: vars.accountId default "NOT_AVAILABLE",
+                    accountContactCount: vars.accountContactCount default 0
+                }, "application/json")]'/>
+
+    </sub-flow>
+
+</mule>

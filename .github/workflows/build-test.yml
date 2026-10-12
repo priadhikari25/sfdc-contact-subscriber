@@ -1,0 +1,52 @@
+name: Build and Test Salesforce Contact Subscriber
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Verify secret files are not tracked
+        shell: bash
+        run: |
+          if git ls-files | grep -E 'local-secrets\.properties|secure\.properties'; then
+            echo "A secret properties file is tracked by Git."
+            exit 1
+          fi
+
+      - name: Run MUnit tests and package
+        env:
+          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+          SECURE_KEY: ${{ secrets.SECURE_KEY }}
+        run: |
+          mvn --batch-mode clean package \
+            -Dsecure.key="${SECURE_KEY}"
+
+      - name: Upload Mule application artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sfdc-contact-subscriber
+          path: target/*.jar
+          if-no-files-found: error

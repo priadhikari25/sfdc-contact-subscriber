@@ -11,3 +11,4 @@ src/main/resources/rabbitmq-local.properties*.backup
 src/main/resources/rabbitmq-local.properties
 src/main/resources/local-secrets.properties
 .mule/
+src/main/resources/secure/secure.properties

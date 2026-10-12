@@ -1,24 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <settings
-    xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+    xmlns="http://maven.apache.org/SETTINGS/1.2.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="
-        http://maven.apache.org/SETTINGS/1.0.0
-        http://maven.apache.org/xsd/settings-1.0.0.xsd">
+        http://maven.apache.org/SETTINGS/1.2.0
+        https://maven.apache.org/xsd/settings-1.2.0.xsd">
 
     <servers>
 
         <server>
-            <id>anypoint-exchange</id>
-            <username>${env.NEXUS_USERNAME}</username>
-            <password>${env.NEXUS_PASSWORD}</password>
-        </server>
-
-        <server>
-            <id>Repository</id>
-            <username>${env.NEXUS_USERNAME}</username>
-            <password>${env.NEXUS_PASSWORD}</password>
+            <id>anypoint-exchange-v3</id>
+            <username>~~~Client~~~</username>
+            <password>${env.ANYPOINT_CLIENT_ID}~?~${env.ANYPOINT_CLIENT_SECRET}</password>
         </server>
 
     </servers>
@@ -31,13 +25,15 @@
             <repositories>
 
                 <repository>
-                    <id>anypoint-exchange</id>
+                    <id>anypoint-exchange-v3</id>
                     <name>Anypoint Exchange</name>
                     <url>https://maven.anypoint.mulesoft.com/api/v3/maven</url>
                     <layout>default</layout>
+
                     <releases>
                         <enabled>true</enabled>
                     </releases>
+
                     <snapshots>
                         <enabled>true</enabled>
                     </snapshots>
@@ -45,16 +41,17 @@
 
                 <repository>
                     <id>mulesoft-releases</id>
-                    <name>MuleSoft Releases</name>
-                    <url>https://repository.mulesoft.org/releases/</url>
+                    <name>MuleSoft Releases Repository</name>
+                    <url>https://repository.mulesoft.org/nexus/repository/releases/</url>
                     <layout>default</layout>
-                </repository>
 
-                <repository>
-                    <id>mulesoft-public</id>
-                    <name>MuleSoft Public Repository</name>
-                    <url>https://repository.mulesoft.org/nexus/content/repositories/public/</url>
-                    <layout>default</layout>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
                 </repository>
 
             </repositories>
@@ -63,22 +60,17 @@
 
                 <pluginRepository>
                     <id>mulesoft-releases</id>
-                    <name>MuleSoft Releases</name>
-                    <url>https://repository.mulesoft.org/releases/</url>
+                    <name>MuleSoft Releases Repository</name>
+                    <url>https://repository.mulesoft.org/nexus/repository/releases/</url>
                     <layout>default</layout>
+
                     <releases>
                         <enabled>true</enabled>
                     </releases>
+
                     <snapshots>
                         <enabled>false</enabled>
                     </snapshots>
-                </pluginRepository>
-
-                <pluginRepository>
-                    <id>mulesoft-public</id>
-                    <name>MuleSoft Public Repository</name>
-                    <url>https://repository.mulesoft.org/nexus/content/repositories/public/</url>
-                    <layout>default</layout>
                 </pluginRepository>
 
             </pluginRepositories>

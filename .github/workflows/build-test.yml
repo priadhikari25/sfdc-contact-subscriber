@@ -1,74 +1,422 @@
-name: Build and Test Salesforce Contact Subscriber
+name: Salesforce Contact Subscriber CI/CD
 
 on:
   push:
     branches:
       - main
+
   pull_request:
     branches:
       - main
+
   workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish version 1.0.0 to Anypoint Exchange
+        required: true
+        type: boolean
+        default: false
+
+      deploy:
+        description: Deploy version 1.0.0 to CloudHub 2.0
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
+concurrency:
+  group: sfdc-contact-subscriber
+  cancel-in-progress: false
+
 jobs:
-  build-test:
-    runs-on: ubuntu-latest
+  build-test-publish-deploy:
+    name: Build Test Publish Deploy
+    runs-on: ubuntu-24.04
+
+    env:
+      ANYPOINT_CLIENT_ID: ${{ secrets.ANYPOINT_CLIENT_ID }}
+      ANYPOINT_CLIENT_SECRET: ${{ secrets.ANYPOINT_CLIENT_SECRET }}
+      SECURE_KEY: ${{ secrets.SECURE_KEY }}
+      SECURE_PROPERTIES_FILE: ${{ secrets.SECURE_PROPERTIES_FILE }}
+
+      ANYPOINT_ORG_ID: ${{ vars.ANYPOINT_ORG_ID }}
+      ANYPOINT_ENVIRONMENT: ${{ vars.ANYPOINT_ENVIRONMENT }}
+      CLOUDHUB_TARGET: ${{ vars.CLOUDHUB_TARGET }}
+      APPLICATION_NAME: ${{ vars.APPLICATION_NAME }}
+      MULE_VERSION: ${{ vars.MULE_VERSION }}
+      CDC_REPLAY_OPTION: ${{ vars.CDC_REPLAY_OPTION }}
+      CDC_REPLAY_ID: ${{ vars.CDC_REPLAY_ID }}
+
+      APP_VERSION: "1.0.0"
+      ARTIFACT_PATH: target/sfdc-contact-subscriber-1.0.0-mule-application.jar
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
           cache: maven
 
-      - name: Display Java and Maven versions
+      - name: Set up Maven 3.9.9
+        uses: stCarolas/setup-maven@v5
+        with:
+          maven-version: "3.9.9"
+
+      - name: Validate build tools
+        shell: bash
         run: |
           java -version
-          mvn -version
+          mvn --version
+
+          MAVEN_VERSION="$(mvn --version | head -n 1)"
+
+          if ! echo "${MAVEN_VERSION}" | grep -Fq "Apache Maven 3.9.9"; then
+            echo "::error::Expected Apache Maven 3.9.9."
+            echo "::error::Actual version: ${MAVEN_VERSION}"
+            exit 1
+          fi
+
+          echo "Java 17 and Maven 3.9.9 are active."
+
+      - name: Validate required project files
+        shell: bash
+        run: |
+          if [ ! -f "pom.xml" ]; then
+            echo "::error::pom.xml was not found."
+            exit 1
+          fi
+
+          if [ ! -f "mule-artifact.json" ]; then
+            echo "::error::mule-artifact.json was not found."
+            exit 1
+          fi
+
+          if [ ! -f ".maven/settings.xml" ]; then
+            echo "::error::.maven/settings.xml was not found."
+            exit 1
+          fi
+
+          if [ ! -d "src/main" ]; then
+            echo "::error::src/main was not found."
+            exit 1
+          fi
+
+          if [ ! -d "src/test/munit" ]; then
+            echo "::error::src/test/munit was not found."
+            exit 1
+          fi
+
+          echo "Required project files are available."
+
+      - name: Validate required secrets and variables
+        shell: bash
+        run: |
+          MISSING=0
+
+          if [ -z "${ANYPOINT_CLIENT_ID}" ]; then
+            echo "::error::ANYPOINT_CLIENT_ID secret is missing."
+            MISSING=1
+          fi
+
+          if [ -z "${ANYPOINT_CLIENT_SECRET}" ]; then
+            echo "::error::ANYPOINT_CLIENT_SECRET secret is missing."
+            MISSING=1
+          fi
+
+          if [ -z "${SECURE_KEY}" ]; then
+            echo "::error::SECURE_KEY secret is missing."
+            MISSING=1
+          fi
+
+          if [ -z "${SECURE_PROPERTIES_FILE}" ]; then
+            echo "::error::SECURE_PROPERTIES_FILE secret is missing."
+            MISSING=1
+          fi
+
+          if [ -z "${ANYPOINT_ORG_ID}" ]; then
+            echo "::error::ANYPOINT_ORG_ID variable is missing."
+            MISSING=1
+          fi
+
+          if [ -z "${ANYPOINT_ENVIRONMENT}" ]; then
+            echo "::error::ANYPOINT_ENVIRONMENT variable is missing."
+            MISSING=1
+          fi
+
+          if [ -z "${CLOUDHUB_TARGET}" ]; then
+            echo "::error::CLOUDHUB_TARGET variable is missing."
+            MISSING=1
+          fi
+
+          if [ -z "${APPLICATION_NAME}" ]; then
+            echo "::error::APPLICATION_NAME variable is missing."
+            MISSING=1
+          fi
+
+          if [ -z "${MULE_VERSION}" ]; then
+            echo "::error::MULE_VERSION variable is missing."
+            MISSING=1
+          fi
+
+          if [ -z "${CDC_REPLAY_OPTION}" ]; then
+            echo "::error::CDC_REPLAY_OPTION variable is missing."
+            MISSING=1
+          fi
+
+          if [ -z "${CDC_REPLAY_ID}" ]; then
+            echo "::error::CDC_REPLAY_ID variable is missing."
+            MISSING=1
+          fi
+
+          if [ "${MISSING}" -ne 0 ]; then
+            exit 1
+          fi
+
+          echo "Required secrets and variables are available."
+
+      - name: Validate deployment configuration
+        shell: bash
+        run: |
+          if [ "${ANYPOINT_ORG_ID}" != "df08bea2-3ef2-4a40-b3c9-85c668f35a38" ]; then
+            echo "::error::ANYPOINT_ORG_ID is incorrect."
+            exit 1
+          fi
+
+          if [ "${ANYPOINT_ENVIRONMENT}" != "Sandbox" ]; then
+            echo "::error::ANYPOINT_ENVIRONMENT must be Sandbox."
+            exit 1
+          fi
+
+          if [ "${CLOUDHUB_TARGET}" != "Cloudhub-US-East-2" ]; then
+            echo "::error::CLOUDHUB_TARGET must be Cloudhub-US-East-2."
+            exit 1
+          fi
+
+          if [ "${APPLICATION_NAME}" != "sfdc-contact-subscriber" ]; then
+            echo "::error::APPLICATION_NAME must be sfdc-contact-subscriber."
+            exit 1
+          fi
+
+          if [ "${MULE_VERSION}" != "4.12.2" ]; then
+            echo "::error::MULE_VERSION must be 4.12.2."
+            exit 1
+          fi
+
+          if [ "${CDC_REPLAY_OPTION}" != "FROM_LAST_REPLAY_ID" ] && \
+             [ "${CDC_REPLAY_OPTION}" != "FROM_REPLAY_ID" ] && \
+             [ "${CDC_REPLAY_OPTION}" != "ONLY_NEW" ] && \
+             [ "${CDC_REPLAY_OPTION}" != "ALL" ]; then
+            echo "::error::CDC_REPLAY_OPTION is invalid."
+            exit 1
+          fi
+
+          echo "Organization: ${ANYPOINT_ORG_ID}"
+          echo "Environment: ${ANYPOINT_ENVIRONMENT}"
+          echo "Target: ${CLOUDHUB_TARGET}"
+          echo "Application: ${APPLICATION_NAME}"
+          echo "Application version: ${APP_VERSION}"
+          echo "Runtime: ${MULE_VERSION}"
+          echo "Replay option: ${CDC_REPLAY_OPTION}"
+          echo "Replay ID: ${CDC_REPLAY_ID}"
 
       - name: Verify secret files are not tracked
         shell: bash
         run: |
-          if git ls-files | grep -E 'local-secrets\.properties|secure\.properties'; then
-            echo "A secret properties file is tracked by Git."
+          TRACKED=0
+
+          if git ls-files --error-unmatch "src/main/resources/local-secrets.properties" > /dev/null 2>&1; then
+            echo "::error::local-secrets.properties is tracked by Git."
+            TRACKED=1
+          fi
+
+          if git ls-files --error-unmatch "src/main/resources/secure/secure.properties" > /dev/null 2>&1; then
+            echo "::error::secure.properties is tracked by Git."
+            TRACKED=1
+          fi
+
+          if [ "${TRACKED}" -ne 0 ]; then
             exit 1
           fi
 
-      - name: Validate Maven project
-        env:
-          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
-          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
-          SECURE_KEY: ${{ secrets.SECURE_KEY }}
+          echo "No secret property files are tracked."
+
+      - name: Create secure properties file
+        shell: bash
+        run: |
+          mkdir -p "src/main/resources/secure"
+
+          printf '%s\n' "${SECURE_PROPERTIES_FILE}" > "src/main/resources/secure/secure.properties"
+
+          if [ ! -s "src/main/resources/secure/secure.properties" ]; then
+            echo "::error::Generated secure.properties is empty."
+            exit 1
+          fi
+
+          PROPERTY_COUNT="$(grep -c '=' "src/main/resources/secure/secure.properties" || true)"
+
+          if [ "${PROPERTY_COUNT}" -eq 0 ]; then
+            echo "::error::Generated secure.properties contains no properties."
+            exit 1
+          fi
+
+          echo "Secure properties file created."
+          echo "Property count: ${PROPERTY_COUNT}"
+
+      - name: Validate Maven settings
+        shell: bash
         run: |
           mvn \
             --batch-mode \
             --errors \
-            --settings .maven/settings.xml \
+            --no-transfer-progress \
+            --settings ".maven/settings.xml" \
+            help:effective-settings
+
+      - name: Validate Maven project
+        shell: bash
+        run: |
+          mvn \
+            --batch-mode \
+            --errors \
+            --no-transfer-progress \
+            --settings ".maven/settings.xml" \
             validate \
-            -Dsecure.key="${SECURE_KEY}"
+            -Dsecure.key="${SECURE_KEY}" \
+            -Dcdc.replayOption="${CDC_REPLAY_OPTION}" \
+            -Dcdc.replayId="${CDC_REPLAY_ID}"
 
       - name: Run MUnit tests and package
-        env:
-          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
-          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
-          SECURE_KEY: ${{ secrets.SECURE_KEY }}
+        shell: bash
         run: |
           mvn \
             --batch-mode \
             --errors \
-            --settings .maven/settings.xml \
+            --no-transfer-progress \
+            --settings ".maven/settings.xml" \
             clean package \
-            -Dsecure.key="${SECURE_KEY}"
+            -Dsecure.key="${SECURE_KEY}" \
+            -Dcdc.replayOption="${CDC_REPLAY_OPTION}" \
+            -Dcdc.replayId="${CDC_REPLAY_ID}" \
+            -DruntimeProduct=MULE_EE
 
-      - name: Upload Mule application artifact
+      - name: Verify Mule application artifact
+        shell: bash
+        run: |
+          if [ ! -f "${ARTIFACT_PATH}" ]; then
+            echo "::error::Mule application JAR was not created."
+            echo "::error::Expected artifact: ${ARTIFACT_PATH}"
+            exit 1
+          fi
+
+          echo "Mule application artifact created."
+          ls -la "${ARTIFACT_PATH}"
+
+      - name: Upload MUnit reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: sfdc-contact-subscriber
-          path: target/*.jar
+          name: sfdc-contact-subscriber-munit-1.0.0
+          path: |
+            target/munit-reports/
+            target/surefire-reports/
+            target/site/munit/
+            target/coverage-reports/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload Mule application artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sfdc-contact-subscriber-1.0.0
+          path: target/sfdc-contact-subscriber-1.0.0-mule-application.jar
           if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish application to Anypoint Exchange
+        if: >-
+          ${{
+            github.event_name == 'workflow_dispatch' &&
+            github.ref == 'refs/heads/main' &&
+            inputs.publish == true
+          }}
+        shell: bash
+        run: |
+          echo "Publishing ${APPLICATION_NAME} version ${APP_VERSION}."
+
+          mvn \
+            --batch-mode \
+            --errors \
+            --no-transfer-progress \
+            --settings ".maven/settings.xml" \
+            clean deploy \
+            -DskipMunitTests \
+            -Dsecure.key="${SECURE_KEY}" \
+            -Dcdc.replayOption="${CDC_REPLAY_OPTION}" \
+            -Dcdc.replayId="${CDC_REPLAY_ID}"
+
+      - name: Deploy application to CloudHub 2.0
+        if: >-
+          ${{
+            github.event_name == 'workflow_dispatch' &&
+            github.ref == 'refs/heads/main' &&
+            inputs.deploy == true
+          }}
+        shell: bash
+        run: |
+          echo "Deploying ${APPLICATION_NAME} version ${APP_VERSION}."
+          echo "Replay option: ${CDC_REPLAY_OPTION}"
+          echo "Replay ID: ${CDC_REPLAY_ID}"
+
+          mvn \
+            --batch-mode \
+            --errors \
+            --no-transfer-progress \
+            --settings ".maven/settings.xml" \
+            mule:deploy \
+            -DskipMunitTests \
+            -Danypoint.clientId="${ANYPOINT_CLIENT_ID}" \
+            -Danypoint.clientSecret="${ANYPOINT_CLIENT_SECRET}" \
+            -Danypoint.orgId="${ANYPOINT_ORG_ID}" \
+            -Danypoint.environment="${ANYPOINT_ENVIRONMENT}" \
+            -Dcloudhub.target="${CLOUDHUB_TARGET}" \
+            -Dcloudhub.application.name="${APPLICATION_NAME}" \
+            -Dapp.runtime="${MULE_VERSION}" \
+            -Dsecure.key="${SECURE_KEY}" \
+            -Dcdc.replayOption="${CDC_REPLAY_OPTION}" \
+            -Dcdc.replayId="${CDC_REPLAY_ID}"
+
+      - name: Remove generated secure properties file
+        if: always()
+        shell: bash
+        run: |
+          rm -f "src/main/resources/secure/secure.properties"
+          echo "Generated secure properties file removed."
+
+      - name: Write workflow summary
+        if: always()
+        shell: bash
+        env:
+          PUBLISH_REQUESTED: ${{ inputs.publish || false }}
+          DEPLOY_REQUESTED: ${{ inputs.deploy || false }}
+        run: |
+          {
+            echo "## Salesforce Contact Subscriber CI/CD"
+            echo
+            echo "- Repository: ${GITHUB_REPOSITORY}"
+            echo "- Branch: ${GITHUB_REF_NAME}"
+            echo "- Application: ${APPLICATION_NAME}"
+            echo "- Version: ${APP_VERSION}"
+            echo "- Environment: ${ANYPOINT_ENVIRONMENT}"
+            echo "- Target: ${CLOUDHUB_TARGET}"
+            echo "- Replay option: ${CDC_REPLAY_OPTION}"
+            echo "- Replay ID: ${CDC_REPLAY_ID}"
+            echo "- Publish requested: ${PUBLISH_REQUESTED}"
+            echo "- Deploy requested: ${DEPLOY_REQUESTED}"
+          } >> "${GITHUB_STEP_SUMMARY}"

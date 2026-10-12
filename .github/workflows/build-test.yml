@@ -50,7 +50,7 @@ jobs:
       CDC_REPLAY_ID: ${{ vars.CDC_REPLAY_ID }}
 
       APP_VERSION: "1.0.0"
-      ARTIFACT_PATH: target/sfdc-contact-subscriber-1.0.0-mule-application.jar
+      ARTIFACT_PATH: "target/sfdc-contact-subscriber-1.0.0-mule-application.jar"
 
     steps:
       - name: Checkout repository
@@ -253,20 +253,50 @@ jobs:
 
           printf '%s\n' "${SECURE_PROPERTIES_FILE}" > "src/main/resources/secure/secure.properties"
 
+          if [ ! -f "src/main/resources/secure/secure.properties" ]; then
+            echo "::error::secure.properties was not created."
+            exit 1
+          fi
+
           if [ ! -s "src/main/resources/secure/secure.properties" ]; then
-            echo "::error::Generated secure.properties is empty."
+            echo "::error::secure.properties is empty."
             exit 1
           fi
 
           PROPERTY_COUNT="$(grep -c '=' "src/main/resources/secure/secure.properties" || true)"
 
           if [ "${PROPERTY_COUNT}" -eq 0 ]; then
-            echo "::error::Generated secure.properties contains no properties."
+            echo "::error::secure.properties contains no properties."
             exit 1
           fi
 
-          echo "Secure properties file created."
+          echo "secure.properties created successfully."
           echo "Property count: ${PROPERTY_COUNT}"
+
+      - name: Create local secrets file
+        shell: bash
+        run: |
+          printf '%s\n' "secure.key=${SECURE_KEY}" > "src/main/resources/local-secrets.properties"
+
+          if [ ! -f "src/main/resources/local-secrets.properties" ]; then
+            echo "::error::local-secrets.properties was not created."
+            exit 1
+          fi
+
+          if [ ! -s "src/main/resources/local-secrets.properties" ]; then
+            echo "::error::local-secrets.properties is empty."
+            exit 1
+          fi
+
+          echo "local-secrets.properties created successfully."
+
+      - name: Verify generated property files
+        shell: bash
+        run: |
+          test -s "src/main/resources/secure/secure.properties"
+          test -s "src/main/resources/local-secrets.properties"
+
+          echo "Both required property files are present."
 
       - name: Validate Maven settings
         shell: bash
@@ -294,6 +324,8 @@ jobs:
       - name: Run MUnit tests and package
         shell: bash
         run: |
+          set -o pipefail
+
           mvn \
             --batch-mode \
             --errors \
@@ -303,7 +335,8 @@ jobs:
             -Dsecure.key="${SECURE_KEY}" \
             -Dcdc.replayOption="${CDC_REPLAY_OPTION}" \
             -Dcdc.replayId="${CDC_REPLAY_ID}" \
-            -DruntimeProduct=MULE_EE
+            -DruntimeProduct=MULE_EE \
+            2>&1 | tee "munit-build.log"
 
       - name: Verify Mule application artifact
         shell: bash
@@ -314,7 +347,7 @@ jobs:
             exit 1
           fi
 
-          echo "Mule application artifact created."
+          echo "Mule application artifact created successfully."
           ls -la "${ARTIFACT_PATH}"
 
       - name: Upload MUnit reports
@@ -323,6 +356,7 @@ jobs:
         with:
           name: sfdc-contact-subscriber-munit-1.0.0
           path: |
+            munit-build.log
             target/munit-reports/
             target/surefire-reports/
             target/site/munit/
@@ -371,6 +405,8 @@ jobs:
         shell: bash
         run: |
           echo "Deploying ${APPLICATION_NAME} version ${APP_VERSION}."
+          echo "Environment: ${ANYPOINT_ENVIRONMENT}"
+          echo "Target: ${CLOUDHUB_TARGET}"
           echo "Replay option: ${CDC_REPLAY_OPTION}"
           echo "Replay ID: ${CDC_REPLAY_ID}"
 
@@ -392,12 +428,14 @@ jobs:
             -Dcdc.replayOption="${CDC_REPLAY_OPTION}" \
             -Dcdc.replayId="${CDC_REPLAY_ID}"
 
-      - name: Remove generated secure properties file
+      - name: Remove generated secret files
         if: always()
         shell: bash
         run: |
           rm -f "src/main/resources/secure/secure.properties"
-          echo "Generated secure properties file removed."
+          rm -f "src/main/resources/local-secrets.properties"
+
+          echo "Generated secret files removed."
 
       - name: Write workflow summary
         if: always()
@@ -411,12 +449,14 @@ jobs:
             echo
             echo "- Repository: ${GITHUB_REPOSITORY}"
             echo "- Branch: ${GITHUB_REF_NAME}"
+            echo "- Commit: ${GITHUB_SHA}"
             echo "- Application: ${APPLICATION_NAME}"
             echo "- Version: ${APP_VERSION}"
             echo "- Environment: ${ANYPOINT_ENVIRONMENT}"
             echo "- Target: ${CLOUDHUB_TARGET}"
             echo "- Replay option: ${CDC_REPLAY_OPTION}"
             echo "- Replay ID: ${CDC_REPLAY_ID}"
+            echo "- MUnit gate: enabled"
             echo "- Publish requested: ${PUBLISH_REQUESTED}"
             echo "- Deploy requested: ${DEPLOY_REQUESTED}"
           } >> "${GITHUB_STEP_SUMMARY}"

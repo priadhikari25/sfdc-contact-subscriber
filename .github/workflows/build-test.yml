@@ -46,8 +46,10 @@ jobs:
           NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
           SECURE_KEY: ${{ secrets.SECURE_KEY }}
         run: |
-          mvn --batch-mode \
-            -e \
+          mvn \
+            --batch-mode \
+            --errors \
+            --settings .maven/settings.xml \
             validate \
             -Dsecure.key="${SECURE_KEY}"
 
@@ -57,8 +59,10 @@ jobs:
           NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
           SECURE_KEY: ${{ secrets.SECURE_KEY }}
         run: |
-          mvn --batch-mode \
-            -e \
+          mvn \
+            --batch-mode \
+            --errors \
+            --settings .maven/settings.xml \
             clean package \
             -Dsecure.key="${SECURE_KEY}"
 
@@ -67,4 +71,4 @@ jobs:
         with:
           name: sfdc-contact-subscriber
           path: target/*.jar
-          if-no-files-*ound: error
+          if-no-files-found: error

@@ -1,171 +1,435 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.mycompany</groupId>
-	<artifactId>sfdc-contact-subscriber</artifactId>
-	<version>1.0.0-SNAPSHOT</version>
-	<packaging>mule-application</packaging>
+<project
+    xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="
+        http://maven.apache.org/POM/4.0.0
+        https://maven.apache.org/xsd/maven-4.0.0.xsd">
 
-	<name>sfdc-contact-subscriber</name>
+    <modelVersion>4.0.0</modelVersion>
 
-	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <groupId>df08bea2-3ef2-4a40-b3c9-85c668f35a38</groupId>
+    <artifactId>sfdc-contact-subscriber</artifactId>
+    <version>1.0.0</version>
+    <packaging>mule-application</packaging>
 
-		<app.runtime>4.12.2</app.runtime>
-		<mule.maven.plugin.version>4.10.1</mule.maven.plugin.version>
-		<munit.version>3.7.3</munit.version>
-		<cdc.replayOption>FROM_REPLAY_ID</cdc.replayOption>
-		<cdc.replayId>-1</cdc.replayId>
-	</properties>
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-clean-plugin</artifactId>
-				<version>3.2.0</version>
-			</plugin>
-			<plugin>
-				<groupId>org.mule.tools.maven</groupId>
-				<artifactId>mule-maven-plugin</artifactId>
-				<version>${mule.maven.plugin.version}</version>
-				<extensions>true</extensions>
-				<configuration>
-					<sharedLibraries>
-						<sharedLibrary>
-							<groupId>org.apache.activemq</groupId>
-							<artifactId>activemq-client</artifactId>
-						</sharedLibrary>
-					</sharedLibraries>
-					<cloudHubDeployment>
-						<!-- Keep your existing CloudHub deployment fields here. -->
+    <name>sfdc-contact-subscriber</name>
 
-						<properties>
-							<cdc.replayOption>${cdc.replayOption}</cdc.replayOption>
-							<cdc.replayId>${cdc.replayId}</cdc.replayId>
-						</properties>
+    <properties>
+        <project.build.sourceEncoding>
+            UTF-8
+        </project.build.sourceEncoding>
 
-					</cloudHubDeployment>
-					<classifier>mule-application</classifier>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>com.mulesoft.munit.tools</groupId>
-				<artifactId>munit-maven-plugin</artifactId>
-				<version>${munit.version}</version>
-				<executions>
-					<execution>
-						<id>test</id>
-						<phase>test</phase>
-						<goals>
-							<goal>test</goal>
-							<goal>coverage-report</goal>
-						</goals>
-					</execution>
-				</executions>
-				<configuration>
-					<coverage>
-						<runCoverage>true</runCoverage>
-						<formats>
-							<format>html</format>
-						</formats>
-					</coverage>
-				</configuration>
-			</plugin>
-		</plugins>
-	</build>
+        <project.reporting.outputEncoding>
+            UTF-8
+        </project.reporting.outputEncoding>
 
-	<dependencies>
-		<dependency>
-			<groupId>org.mule.connectors</groupId>
-			<artifactId>mule-http-connector</artifactId>
-			<version>1.11.3</version>
-			<classifier>mule-plugin</classifier>
-		</dependency>
-		<dependency>
-			<groupId>org.mule.connectors</groupId>
-			<artifactId>mule-sockets-connector</artifactId>
-			<version>1.2.9</version>
-			<classifier>mule-plugin</classifier>
-		</dependency>
-		<dependency>
-			<groupId>com.mulesoft.modules</groupId>
-			<artifactId>mule-secure-configuration-property-module</artifactId>
-			<version>1.2.7</version>
-			<classifier>mule-plugin</classifier>
-		</dependency>
-		<dependency>
-			<groupId>com.mulesoft.connectors</groupId>
-			<artifactId>mule-salesforce-connector</artifactId>
-			<version>10.22.1</version>
-			<classifier>mule-plugin</classifier>
-		</dependency>
-		<dependency>
-			<groupId>org.mule.connectors</groupId>
-			<artifactId>mule-jms-connector</artifactId>
-			<version>1.10.4</version>
-			<classifier>mule-plugin</classifier>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.activemq</groupId>
-			<artifactId>activemq-client</artifactId>
-			<version>5.16.7</version>
-		</dependency>
-		<dependency>
-			<groupId>com.mulesoft.munit</groupId>
-			<artifactId>munit-runner</artifactId>
-			<version>3.7.3</version>
-			<classifier>mule-plugin</classifier>
-			<scope>test</scope>
-		</dependency>
+        <app.runtime>4.12.2</app.runtime>
+        <mule.maven.plugin.version>4.10.1</mule.maven.plugin.version>
+        <munit.version>3.7.3</munit.version>
 
-		<dependency>
-			<groupId>com.mulesoft.munit</groupId>
-			<artifactId>munit-tools</artifactId>
-			<version>3.7.3</version>
-			<classifier>mule-plugin</classifier>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.mule.weave</groupId>
-			<artifactId>assertions</artifactId>
-			<version>1.2.1</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.mulesoft.connectors</groupId>
-			<artifactId>mule-amqp-connector</artifactId>
-			<version>1.9.4</version>
-			<classifier>mule-plugin</classifier>
-		</dependency>
-	</dependencies>
+        <anypoint.orgId>
+            df08bea2-3ef2-4a40-b3c9-85c668f35a38
+        </anypoint.orgId>
 
-	<repositories>
-		<repository>
-			<id>anypoint-exchange-v3</id>
-			<name>Anypoint Exchange</name>
-			<url>https://maven.anypoint.mulesoft.com/api/v3/maven</url>
-			<layout>default</layout>
-		</repository>
-		<repository>
-			<id>mulesoft-releases</id>
-			<name>MuleSoft Releases Repository</name>
-			<url>https://repository.mulesoft.org/nexus/repository/releases/</url>
-			<layout>default</layout>
-		</repository>
-	</repositories>
+        <anypoint.environment>
+            Sandbox
+        </anypoint.environment>
 
-	<pluginRepositories>
-		<pluginRepository>
-			<id>mulesoft-releases</id>
-			<name>MuleSoft Releases Repository</name>
-			<layout>default</layout>
-			<url>https://repository.mulesoft.org/nexus/repository/releases/</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</pluginRepository>
-	</pluginRepositories>
+        <cloudhub.target>
+            Cloudhub-US-East-2
+        </cloudhub.target>
+
+        <cloudhub.application.name>
+            sfdc-contact-subscriber
+        </cloudhub.application.name>
+
+        <anypoint.clientId></anypoint.clientId>
+        <anypoint.clientSecret></anypoint.clientSecret>
+        <secure.key></secure.key>
+
+        <cdc.replayOption>
+            FROM_LAST_REPLAY_ID
+        </cdc.replayOption>
+
+        <cdc.replayId>
+            -1
+        </cdc.replayId>
+    </properties>
+
+    <distributionManagement>
+        <repository>
+            <id>anypoint-exchange-v3</id>
+            <name>Anypoint Exchange</name>
+
+            <url>
+                https://maven.anypoint.mulesoft.com/api/v3/organizations/${project.groupId}/maven
+            </url>
+
+            <layout>default</layout>
+        </repository>
+    </distributionManagement>
+
+    <build>
+        <plugins>
+
+            <plugin>
+                <groupId>
+                    org.apache.maven.plugins
+                </groupId>
+
+                <artifactId>
+                    maven-clean-plugin
+                </artifactId>
+
+                <version>3.2.0</version>
+            </plugin>
+
+            <plugin>
+                <groupId>
+                    org.mule.tools.maven
+                </groupId>
+
+                <artifactId>
+                    mule-maven-plugin
+                </artifactId>
+
+                <version>
+                    ${mule.maven.plugin.version}
+                </version>
+
+                <extensions>true</extensions>
+
+                <configuration>
+
+                    <sharedLibraries>
+                        <sharedLibrary>
+                            <groupId>
+                                org.apache.activemq
+                            </groupId>
+
+                            <artifactId>
+                                activemq-client
+                            </artifactId>
+                        </sharedLibrary>
+                    </sharedLibraries>
+
+                    <cloudhub2Deployment>
+
+                        <uri>
+                            https://anypoint.mulesoft.com
+                        </uri>
+
+                        <provider>MC</provider>
+
+                        <environment>
+                            ${anypoint.environment}
+                        </environment>
+
+                        <target>
+                            ${cloudhub.target}
+                        </target>
+
+                        <muleVersion>
+                            ${app.runtime}
+                        </muleVersion>
+
+                        <applicationName>
+                            ${cloudhub.application.name}
+                        </applicationName>
+
+                        <businessGroupId>
+                            ${anypoint.orgId}
+                        </businessGroupId>
+
+                        <connectedAppClientId>
+                            ${anypoint.clientId}
+                        </connectedAppClientId>
+
+                        <connectedAppClientSecret>
+                            ${anypoint.clientSecret}
+                        </connectedAppClientSecret>
+
+                        <connectedAppGrantType>
+                            client_credentials
+                        </connectedAppGrantType>
+
+                        <replicas>1</replicas>
+                        <vCores>0.1</vCores>
+
+                        <skipDeploymentVerification>
+                            false
+                        </skipDeploymentVerification>
+
+                        <properties>
+
+                            <secure.key>
+                                ${secure.key}
+                            </secure.key>
+
+                            <env>
+                                ${anypoint.environment}
+                            </env>
+
+                            <cdc.replayOption>
+                                ${cdc.replayOption}
+                            </cdc.replayOption>
+
+                            <cdc.replayId>
+                                ${cdc.replayId}
+                            </cdc.replayId>
+
+                        </properties>
+
+                    </cloudhub2Deployment>
+
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>
+                    com.mulesoft.munit.tools
+                </groupId>
+
+                <artifactId>
+                    munit-maven-plugin
+                </artifactId>
+
+                <version>
+                    ${munit.version}
+                </version>
+
+                <executions>
+                    <execution>
+                        <id>test</id>
+                        <phase>test</phase>
+
+                        <goals>
+                            <goal>test</goal>
+                            <goal>coverage-report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+
+                <configuration>
+                    <coverage>
+                        <runCoverage>true</runCoverage>
+
+                        <formats>
+                            <format>html</format>
+                        </formats>
+                    </coverage>
+                </configuration>
+            </plugin>
+
+        </plugins>
+    </build>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>
+                org.mule.connectors
+            </groupId>
+
+            <artifactId>
+                mule-http-connector
+            </artifactId>
+
+            <version>1.11.3</version>
+            <classifier>mule-plugin</classifier>
+        </dependency>
+
+        <dependency>
+            <groupId>
+                org.mule.connectors
+            </groupId>
+
+            <artifactId>
+                mule-sockets-connector
+            </artifactId>
+
+            <version>1.2.9</version>
+            <classifier>mule-plugin</classifier>
+        </dependency>
+
+        <dependency>
+            <groupId>
+                com.mulesoft.modules
+            </groupId>
+
+            <artifactId>
+                mule-secure-configuration-property-module
+            </artifactId>
+
+            <version>1.2.7</version>
+            <classifier>mule-plugin</classifier>
+        </dependency>
+
+        <dependency>
+            <groupId>
+                com.mulesoft.connectors
+            </groupId>
+
+            <artifactId>
+                mule-salesforce-connector
+            </artifactId>
+
+            <version>10.22.1</version>
+            <classifier>mule-plugin</classifier>
+        </dependency>
+
+        <dependency>
+            <groupId>
+                org.mule.connectors
+            </groupId>
+
+            <artifactId>
+                mule-jms-connector
+            </artifactId>
+
+            <version>1.10.4</version>
+            <classifier>mule-plugin</classifier>
+        </dependency>
+
+        <dependency>
+            <groupId>
+                org.apache.activemq
+            </groupId>
+
+            <artifactId>
+                activemq-client
+            </artifactId>
+
+            <version>5.16.7</version>
+        </dependency>
+
+        <dependency>
+            <groupId>
+                com.mulesoft.connectors
+            </groupId>
+
+            <artifactId>
+                mule-amqp-connector
+            </artifactId>
+
+            <version>1.9.4</version>
+            <classifier>mule-plugin</classifier>
+        </dependency>
+
+        <dependency>
+            <groupId>
+                com.mulesoft.munit
+            </groupId>
+
+            <artifactId>
+                munit-runner
+            </artifactId>
+
+            <version>
+                ${munit.version}
+            </version>
+
+            <classifier>mule-plugin</classifier>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>
+                com.mulesoft.munit
+            </groupId>
+
+            <artifactId>
+                munit-tools
+            </artifactId>
+
+            <version>
+                ${munit.version}
+            </version>
+
+            <classifier>mule-plugin</classifier>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>
+                org.mule.weave
+            </groupId>
+
+            <artifactId>
+                assertions
+            </artifactId>
+
+            <version>1.2.1</version>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <repositories>
+
+        <repository>
+            <id>anypoint-exchange-v3</id>
+            <name>Anypoint Exchange</name>
+
+            <url>
+                https://maven.anypoint.mulesoft.com/api/v3/maven
+            </url>
+
+            <layout>default</layout>
+
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+
+        <repository>
+            <id>mulesoft-releases</id>
+            <name>MuleSoft Releases Repository</name>
+
+            <url>
+                https://repository.mulesoft.org/nexus/repository/releases/
+            </url>
+
+            <layout>default</layout>
+
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+
+    </repositories>
+
+    <pluginRepositories>
+
+        <pluginRepository>
+            <id>mulesoft-releases</id>
+            <name>MuleSoft Releases Repository</name>
+
+            <url>
+                https://repository.mulesoft.org/nexus/repository/releases/
+            </url>
+
+            <layout>default</layout>
+
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </pluginRepository>
+
+    </pluginRepositories>
 
 </project>

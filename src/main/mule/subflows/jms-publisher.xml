@@ -7,13 +7,10 @@
     xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
     xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp"
     xsi:schemaLocation="
-http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
         http://www.mulesoft.org/schema/mule/core
         http://www.mulesoft.org/schema/mule/core/current/mule.xsd
-
         http://www.mulesoft.org/schema/mule/ee/core
         http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
-
         http://www.mulesoft.org/schema/mule/amqp
         http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd">
 
@@ -128,31 +125,25 @@ output application/json
         </ee:transform>
 
         <logger
-                level="INFO"
-                doc:name="Log JMS Payload Construction Result"
-                message='#[write({
-                    event: "CONTACT_ONBOARDING_JMS_PAYLOAD_BUILT",
-                    correlationId:
-                        vars.correlationId default "NOT_AVAILABLE",
-                    contactId:
-                        vars.contactId
-                            default vars.jmsPayload.contact_sf_id
-                            default "UNKNOWN",
-                    replayId:
-                        vars.replayId default "NOT_AVAILABLE",
-                    changeType:
-                        vars.changeType default "UNKNOWN",
-                    accountId:
-                        vars.jmsPayload.account_id default "NOT_AVAILABLE",
-                    accountName:
-                        vars.jmsPayload.account_name default "Unknown",
-                    accountContactCount:
-                        vars.jmsPayload.account_contact_count default 0,
-                    contactPriority:
-                        vars.jmsPayload.contact_priority default "NORMAL",
-                    modifiedDate:
-                        vars.jmsPayload.modified_date default null
-                }, "application/json")]'/>
+    level="INFO"
+    doc:name="Log JMS Payload Construction Start"
+    message='#[write({
+        event: "CONTACT_ONBOARDING_JMS_PAYLOAD_BUILD_STARTED",
+        correlationId:
+            (vars.correlationId default correlationId) as String,
+        contactId:
+            vars.contactId
+                default vars.contactDetails.Id
+                default "UNKNOWN",
+        accountId:
+            vars.contactDetails.AccountId
+                default vars.accountId
+                default "NOT_AVAILABLE",
+        replayId:
+            vars.replayId default "NOT_AVAILABLE",
+        changeType:
+            vars.changeType default "UNKNOWN"
+    }, "application/json")]'/>
 
     </sub-flow>
 

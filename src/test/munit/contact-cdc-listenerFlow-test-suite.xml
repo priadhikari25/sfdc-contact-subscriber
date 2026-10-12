@@ -12,16 +12,12 @@
 http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd 
         http://www.mulesoft.org/schema/mule/core
         http://www.mulesoft.org/schema/mule/core/current/mule.xsd
-
         http://www.mulesoft.org/schema/mule/munit
         http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
-
         http://www.mulesoft.org/schema/mule/munit-tools
         http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd
-
         http://www.mulesoft.org/schema/mule/salesforce
         http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
-
         http://www.mulesoft.org/schema/mule/amqp
         http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd">
 
@@ -767,6 +763,464 @@ http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/mu
                 message="AMQP replay ID was not preserved."/>
 
         </munit:validation>
+
+    </munit:test>
+    
+        <!-- ========================================================= -->
+    <!-- Test 8: Missing optional relationships                    -->
+    <!-- ========================================================= -->
+
+    <munit:test
+        name="testMissingOptionalRelationships"
+        description="Validate default Account, Reports To and Contact Count values">
+
+        <munit:execution>
+
+            <munit:set-event doc:name="Set Missing Relationship Context">
+
+                <munit:payload
+                    value="#[null]"
+                    mediaType="application/java"/>
+
+                <munit:variables>
+
+                    <munit:variable
+                        key="correlationId"
+                        value="#['TEST-CORRELATION-DEFAULTS']"
+                        mediaType="application/java"/>
+
+                    <munit:variable
+                        key="contactId"
+                        value="#['003DEFAULTS']"
+                        mediaType="application/java"/>
+
+                    <munit:variable
+                        key="replayId"
+                        value="#[2126900]"
+                        mediaType="application/java"/>
+
+                    <munit:variable
+                        key="changeType"
+                        value="#['UPDATE']"
+                        mediaType="application/java"/>
+
+                    <munit:variable
+                        key="accountId"
+                        value="#[null]"
+                        mediaType="application/java"/>
+
+                    <munit:variable
+                        key="reportsToId"
+                        value="#[null]"
+                        mediaType="application/java"/>
+
+                </munit:variables>
+
+            </munit:set-event>
+
+            <flow-ref
+                name="contact-account-enrichment-subflow"
+                doc:name="Execute Default Account Enrichment"/>
+
+            <flow-ref
+                name="contact-manager-enrichment-subflow"
+                doc:name="Execute Default Reports To Enrichment"/>
+
+            <flow-ref
+                name="contact-account-contact-count-enrichment-subflow"
+                doc:name="Execute Default Contact Count Enrichment"/>
+
+        </munit:execution>
+
+        <munit:validation>
+
+            <munit-tools:assert-that
+                expression="#[vars.accountDetails.Name]"
+                is="#[MunitTools::equalTo('Unknown')]"
+                message="Account Name must default to Unknown."/>
+
+            <munit-tools:assert-that
+                expression="#[vars.accountDetails.Industry]"
+                is="#[MunitTools::nullValue()]"
+                message="Account Industry must be null."/>
+
+            <munit-tools:assert-that
+                expression="#[vars.accountDetails.Type]"
+                is="#[MunitTools::nullValue()]"
+                message="Account Type must be null."/>
+
+            <munit-tools:assert-that
+                expression="#[vars.accountDetails.AnnualRevenue]"
+                is="#[MunitTools::nullValue()]"
+                message="Account Annual Revenue must be null."/>
+
+            <munit-tools:assert-that
+                expression="#[vars.managerDetails.Id]"
+                is="#[MunitTools::nullValue()]"
+                message="Reports To ID must be null."/>
+
+            <munit-tools:assert-that
+                expression="#[vars.managerDetails.Name]"
+                is="#[MunitTools::equalTo('Unassigned')]"
+                message="Reports To Name must default to Unassigned."/>
+
+            <munit-tools:assert-that
+                expression="#[vars.accountContactCount]"
+                is="#[MunitTools::equalTo(0)]"
+                message="Account Contact Count must default to zero."/>
+
+            <munit-tools:verify-call
+                processor="salesforce:query"
+                times="0"/>
+
+        </munit:validation>
+
+    </munit:test>
+
+    <!-- ========================================================= -->
+    <!-- Test 9: Contact not found                                 -->
+    <!-- ========================================================= -->
+
+    <munit:test
+        name="testContactNotFound"
+        description="Validate empty Contact values when Salesforce returns no Contact">
+
+        <munit:behavior>
+
+            <munit-tools:mock-when processor="salesforce:query">
+
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute
+                        attributeName="doc:name"
+                        whereValue="#['Retrieve Salesforce Contact Details']"/>
+                </munit-tools:with-attributes>
+
+                <munit-tools:then-return>
+                    <munit-tools:payload
+                        value="#[[]]"
+                        mediaType="application/java"/>
+                </munit-tools:then-return>
+
+            </munit-tools:mock-when>
+
+        </munit:behavior>
+
+        <munit:execution>
+
+            <munit:set-event doc:name="Set Contact Not Found Context">
+
+                <munit:payload
+                    value="#[null]"
+                    mediaType="application/java"/>
+
+                <munit:variables>
+
+                    <munit:variable
+                        key="correlationId"
+                        value="#['TEST-CORRELATION-NOT-FOUND']"
+                        mediaType="application/java"/>
+
+                    <munit:variable
+                        key="contactId"
+                        value="#['003NOTFOUND']"
+                        mediaType="application/java"/>
+
+                    <munit:variable
+                        key="replayId"
+                        value="#[2126901]"
+                        mediaType="application/java"/>
+
+                    <munit:variable
+                        key="changeType"
+                        value="#['UPDATE']"
+                        mediaType="application/java"/>
+
+                </munit:variables>
+
+            </munit:set-event>
+
+            <flow-ref
+                name="contact-contact-detail-enrichment-subflow"
+                doc:name="Execute Contact Not Found Enrichment"/>
+
+        </munit:execution>
+
+        <munit:validation>
+
+            <munit-tools:assert-that
+                expression="#[isEmpty(vars.contactDetails)]"
+                is="#[MunitTools::equalTo(true)]"
+                message="Contact Details must be empty."/>
+
+            <munit-tools:assert-that
+                expression="#[vars.accountId]"
+                is="#[MunitTools::nullValue()]"
+                message="Account ID must be null."/>
+
+            <munit-tools:assert-that
+                expression="#[vars.reportsToId]"
+                is="#[MunitTools::nullValue()]"
+                message="Reports To ID must be null."/>
+
+            <munit-tools:verify-call
+                processor="salesforce:query"
+                times="1">
+
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute
+                        attributeName="doc:name"
+                        whereValue="#['Retrieve Salesforce Contact Details']"/>
+                </munit-tools:with-attributes>
+
+            </munit-tools:verify-call>
+
+        </munit:validation>
+
+    </munit:test>
+
+    <!-- ========================================================= -->
+    <!-- Test 10: Default payload transformation                   -->
+    <!-- ========================================================= -->
+
+    <munit:test
+        name="testTransformationDefaults"
+        description="Validate onboarding payload default values">
+
+        <munit:execution>
+
+            <munit:set-event doc:name="Set Default Transformation Variables">
+
+                <munit:payload
+                    value="#[null]"
+                    mediaType="application/java"/>
+
+                <munit:variables>
+
+                    <munit:variable
+                        key="correlationId"
+                        value="#['TEST-CORRELATION-TRANSFORM-DEFAULTS']"
+                        mediaType="application/java"/>
+
+                    <munit:variable
+                        key="contactId"
+                        value="#['003TRANSFORMDEFAULT']"
+                        mediaType="application/java"/>
+
+                    <munit:variable
+                        key="accountId"
+                        value="#[null]"
+                        mediaType="application/java"/>
+
+                    <munit:variable
+                        key="reportsToId"
+                        value="#[null]"
+                        mediaType="application/java"/>
+
+                    <munit:variable
+                        key="replayId"
+                        value="#[2126902]"
+                        mediaType="application/java"/>
+
+                    <munit:variable
+                        key="changeType"
+                        value="#['CREATE']"
+                        mediaType="application/java"/>
+
+                    <munit:variable
+                        key="contactDetails"
+                        mediaType="application/java"
+                        value='#[{
+                            Id: "003TRANSFORMDEFAULT",
+                            FirstName: "Test",
+                            LastName: "Contact",
+                            Email: "TEST.CONTACT@EXAMPLE.COM",
+                            Phone: null,
+                            AccountId: null,
+                            Title: null,
+                            Department: null,
+                            ReportsToId: null,
+                            LastModifiedDate: null
+                        }]'/>
+
+                    <munit:variable
+                        key="accountDetails"
+                        mediaType="application/java"
+                        value='#[{
+                            Name: "Unknown",
+                            Industry: null,
+                            Type: null,
+                            AnnualRevenue: null
+                        }]'/>
+
+                    <munit:variable
+                        key="managerDetails"
+                        mediaType="application/java"
+                        value='#[{
+                            Id: null,
+                            Name: "Unassigned"
+                        }]'/>
+
+                    <munit:variable
+                        key="accountContactCount"
+                        value="#[0]"
+                        mediaType="application/java"/>
+
+                    <munit:variable
+                        key="contactPriority"
+                        value="#['NORMAL']"
+                        mediaType="application/java"/>
+
+                </munit:variables>
+
+            </munit:set-event>
+
+            <flow-ref
+                name="contact-jms-payload-builder-subflow"
+                doc:name="Execute Default Payload Transformation"/>
+
+        </munit:execution>
+
+        <munit:validation>
+
+            <munit-tools:assert-that
+                expression="#[vars.jmsPayload.contact_sf_id]"
+                is="#[MunitTools::equalTo('003TRANSFORMDEFAULT')]"
+                message="Contact ID mapping is incorrect."/>
+
+            <munit-tools:assert-that
+                expression="#[vars.jmsPayload.email]"
+                is="#[MunitTools::equalTo('test.contact@example.com')]"
+                message="Email must be converted to lowercase."/>
+
+            <munit-tools:assert-that
+                expression="#[vars.jmsPayload.account_id]"
+                is="#[MunitTools::nullValue()]"
+                message="Account ID must remain null."/>
+
+            <munit-tools:assert-that
+                expression="#[vars.jmsPayload.account_name]"
+                is="#[MunitTools::equalTo('Unknown')]"
+                message="Account Name must default to Unknown."/>
+
+            <munit-tools:assert-that
+                expression="#[vars.jmsPayload.reports_to_id]"
+                is="#[MunitTools::nullValue()]"
+                message="Reports To ID must remain null."/>
+
+            <munit-tools:assert-that
+                expression="#[vars.jmsPayload.reports_to_name]"
+                is="#[MunitTools::equalTo('Unassigned')]"
+                message="Reports To Name must default to Unassigned."/>
+
+            <munit-tools:assert-that
+                expression="#[vars.jmsPayload.account_contact_count]"
+                is="#[MunitTools::equalTo(0)]"
+                message="Account Contact Count must default to zero."/>
+
+            <munit-tools:assert-that
+                expression="#[vars.jmsPayload.contact_priority]"
+                is="#[MunitTools::equalTo('NORMAL')]"
+                message="Contact Priority must default to NORMAL."/>
+
+            <munit-tools:assert-that
+                expression="#[vars.jmsPayload.modified_date]"
+                is="#[MunitTools::nullValue()]"
+                message="Modified Date must remain null."/>
+
+        </munit:validation>
+
+    </munit:test>
+
+    <!-- ========================================================= -->
+    <!-- Test 11: RabbitMQ publication failure                     -->
+    <!-- ========================================================= -->
+
+    <munit:test
+        name="testAmqpPublicationFailure"
+        description="Validate retry exhaustion when RabbitMQ publication fails"
+        expectedErrorType="MULE:RETRY_EXHAUSTED">
+
+        <munit:behavior>
+
+            <munit-tools:mock-when processor="amqp:publish">
+
+                <munit-tools:with-attributes>
+                    <munit-tools:with-attribute
+                        attributeName="doc:name"
+                        whereValue="#['Publish Contact Onboarding AMQP Message']"/>
+                </munit-tools:with-attributes>
+
+                <munit-tools:then-return>
+                    <munit-tools:error
+                        typeId="AMQP:CONNECTIVITY"/>
+                </munit-tools:then-return>
+
+            </munit-tools:mock-when>
+
+        </munit:behavior>
+
+        <munit:execution>
+
+            <munit:set-event doc:name="Set Failed AMQP Publication Context">
+
+                <munit:payload
+                    value="#[null]"
+                    mediaType="application/java"/>
+
+                <munit:variables>
+
+                    <munit:variable
+                        key="correlationId"
+                        value="#['TEST-CORRELATION-AMQP-FAILURE']"
+                        mediaType="application/java"/>
+
+                    <munit:variable
+                        key="contactId"
+                        value="#['003AMQPFAIL']"
+                        mediaType="application/java"/>
+
+                    <munit:variable
+                        key="changeType"
+                        value="#['UPDATE']"
+                        mediaType="application/java"/>
+
+                    <munit:variable
+                        key="replayId"
+                        value="#[2126903]"
+                        mediaType="application/java"/>
+
+                    <munit:variable
+                        key="jmsPayload"
+                        mediaType="application/java"
+                        value='#[{
+                            contact_sf_id: "003AMQPFAIL",
+                            first_name: "Test",
+                            last_name: "Contact",
+                            email: "test.contact@example.com",
+                            phone: null,
+                            account_id: "001AMQPFAIL",
+                            job_title: null,
+                            department: null,
+                            reports_to_id: null,
+                            reports_to_name: "Unassigned",
+                            account_name: "Test Account",
+                            account_industry: "Technology",
+                            account_type: "Customer",
+                            account_revenue: 5000000,
+                            account_contact_count: 1,
+                            contact_priority: "MEDIUM",
+                            modified_date: "2026-10-12 15:00:00"
+                        }]'/>
+
+                </munit:variables>
+
+            </munit:set-event>
+
+            <flow-ref
+                name="contact-jms-message-publisher-subflow"
+                doc:name="Execute Failed RabbitMQ Publication"/>
+
+        </munit:execution>
 
     </munit:test>
 

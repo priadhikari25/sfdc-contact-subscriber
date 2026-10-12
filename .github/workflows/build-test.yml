@@ -27,6 +27,11 @@ jobs:
           java-version: "17"
           cache: maven
 
+      - name: Display Java and Maven versions
+        run: |
+          java -version
+          mvn -version
+
       - name: Verify secret files are not tracked
         shell: bash
         run: |
@@ -35,13 +40,26 @@ jobs:
             exit 1
           fi
 
+      - name: Validate Maven project
+        env:
+          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+          SECURE_KEY: ${{ secrets.SECURE_KEY }}
+        run: |
+          mvn --batch-mode \
+            -e \
+            validate \
+            -Dsecure.key="${SECURE_KEY}"
+
       - name: Run MUnit tests and package
         env:
           NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
           NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
           SECURE_KEY: ${{ secrets.SECURE_KEY }}
         run: |
-          mvn --batch-mode clean package \
+          mvn --batch-mode \
+            -e \
+            clean package \
             -Dsecure.key="${SECURE_KEY}"
 
       - name: Upload Mule application artifact
@@ -49,4 +67,4 @@ jobs:
         with:
           name: sfdc-contact-subscriber
           path: target/*.jar
-          if-no-files-found: error
+          if-no-files-*ound: error

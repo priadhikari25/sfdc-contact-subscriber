@@ -12,10 +12,7 @@
         <server>
             <id>anypoint-exchange-v3</id>
             <username>~~~Client~~~</username>
-
-            <password>
-                ${env.ANYPOINT_CLIENT_ID}~?~${env.ANYPOINT_CLIENT_SECRET}
-            </password>
+            <password>${env.ANYPOINT_CLIENT_ID}~?~${env.ANYPOINT_CLIENT_SECRET}</password>
         </server>
 
     </servers>
@@ -30,11 +27,7 @@
                 <repository>
                     <id>anypoint-exchange-v3</id>
                     <name>Anypoint Exchange</name>
-
-                    <url>
-                        https://maven.anypoint.mulesoft.com/api/v3/maven
-                    </url>
-
+                    <url>https://maven.anypoint.mulesoft.com/api/v3/maven</url>
                     <layout>default</layout>
 
                     <releases>
@@ -48,15 +41,8 @@
 
                 <repository>
                     <id>mulesoft-releases</id>
-
-                    <name>
-                        MuleSoft Releases Repository
-                    </name>
-
-                    <url>
-                        https://repository.mulesoft.org/nexus/repository/releases/
-                    </url>
-
+                    <name>MuleSoft Releases Repository</name>
+                    <url>https://repository.mulesoft.org/nexus/repository/releases/</url>
                     <layout>default</layout>
 
                     <releases>
@@ -74,15 +60,8 @@
 
                 <pluginRepository>
                     <id>mulesoft-releases</id>
-
-                    <name>
-                        MuleSoft Releases Repository
-                    </name>
-
-                    <url>
-                        https://repository.mulesoft.org/nexus/repository/releases/
-                    </url>
-
+                    <name>MuleSoft Releases Repository</name>
+                    <url>https://repository.mulesoft.org/nexus/repository/releases/</url>
                     <layout>default</layout>
 
                     <releases>
@@ -101,9 +80,7 @@
     </profiles>
 
     <activeProfiles>
-        <activeProfile>
-            mulesoft-repositories
-        </activeProfile>
+        <activeProfile>mulesoft-repositories</activeProfile>
     </activeProfiles>
 
 </settings>
